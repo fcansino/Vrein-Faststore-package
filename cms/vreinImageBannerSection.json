@@ -1,0 +1,49 @@
+{
+  "name": "VreinImageBanner",
+  "requiredScopes": [],
+  "schema": {
+    "title": "Vrein Image Banner",
+    "description": "Banner de imagenes promocionales con countdown de Vrein/BrainDW",
+    "type": "object",
+    "required": ["sectionId"],
+    "properties": {
+      "sectionId": {
+        "title": "Section ID",
+        "type": "string",
+        "enumNames": [
+          "HOME - Banner 1",
+          "HOME - Banner 2",
+          "HOME - Banner 3",
+          "PDP - Banner 1",
+          "PDP - Banner 2",
+          "PLP - Banner 1",
+          "SEARCH - Banner 1"
+        ],
+        "enum": [
+          "BDW-HOME-Banner-1",
+          "BDW-HOME-Banner-2",
+          "BDW-HOME-Banner-3",
+          "BDW-PDP-Banner-1",
+          "BDW-PDP-Banner-2",
+          "BDW-PLP-Banner-1",
+          "BDW-SEARCH-Banner-1"
+        ]
+      },
+      "height": {
+        "title": "Altura maxima",
+        "type": "number",
+        "default": 420
+      },
+      "showLazyLoading": {
+        "title": "Mostrar skeleton de carga",
+        "type": "boolean",
+        "default": false
+      },
+      "lazyLoadingHeight": {
+        "title": "Altura del skeleton",
+        "type": "number",
+        "default": 400
+      }
+    }
+  }
+}

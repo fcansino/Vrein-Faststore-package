@@ -1,0 +1,70 @@
+{
+  "name": "VreinCarousel",
+  "requiredScopes": [],
+  "schema": {
+    "title": "Vrein Carousel",
+    "description": "Carrusel de productos recomendados por Vrein/BrainDW",
+    "type": "object",
+    "required": ["sectionId"],
+    "properties": {
+      "sectionId": {
+        "title": "Section ID",
+        "type": "string",
+        "enumNames": [
+          "HOME - Carrusel 1",
+          "HOME - Carrusel 2",
+          "HOME - Carrusel 3",
+          "HOME - Carrusel 4",
+          "HOME - Carrusel 5",
+          "HOME - Carrusel 6",
+          "HOME - Carrusel 7",
+          "HOME - Carrusel 8",
+          "HOME - Carrusel 9",
+          "HOME - Carrusel 10",
+          "HOME - Carrusel 11",
+          "HOME - Carrusel 12",
+          "PDP - Carrusel 1",
+          "PDP - Carrusel 2",
+          "PDP - Carrusel 3",
+          "PDP - Carrusel 4",
+          "PDP - Carrusel 5",
+          "PDP - Carrusel 6",
+          "PLP - Carrusel 1",
+          "SEARCH - Carrusel 1",
+          "SEARCH - Carrusel 2",
+          "SEARCHNORESULT - Carrusel 1",
+          "SEARCHNORESULT - Carrusel 2",
+          "SEARCHNORESULT - Carrusel 3",
+          "SEARCHNORESULT - Carrusel 4"
+        ],
+        "enum": [
+          "BDW-HOME-Carrusel-1",
+          "BDW-HOME-Carrusel-2",
+          "BDW-HOME-Carrusel-3",
+          "BDW-HOME-Carrusel-4",
+          "BDW-HOME-Carrusel-5",
+          "BDW-HOME-Carrusel-6",
+          "BDW-HOME-Carrusel-7",
+          "BDW-HOME-Carrusel-8",
+          "BDW-HOME-Carrusel-9",
+          "BDW-HOME-Carrusel-10",
+          "BDW-HOME-Carrusel-11",
+          "BDW-HOME-Carrusel-12",
+          "BDW-PDP-Carrusel-1",
+          "BDW-PDP-Carrusel-2",
+          "BDW-PDP-Carrusel-3",
+          "BDW-PDP-Carrusel-4",
+          "BDW-PDP-Carrusel-5",
+          "BDW-PDP-Carrusel-6",
+          "BDW-PLP-Carrusel-1",
+          "BDW-SEARCH-Carrusel-1",
+          "BDW-SEARCH-Carrusel-2",
+          "BDW-SEARCHNORESULT-Carrusel-1",
+          "BDW-SEARCHNORESULT-Carrusel-2",
+          "BDW-SEARCHNORESULT-Carrusel-3",
+          "BDW-SEARCHNORESULT-Carrusel-4"
+        ]
+      }
+    }
+  }
+}
