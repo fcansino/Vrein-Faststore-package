@@ -18,8 +18,9 @@ export default defineConfig([
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
       'next',
-      'next/navigation',
+      /^next\/.*/,
       '@faststore/ui',
+      /^@faststore\/.*/,
       'swr',
     ],
     esbuildOptions(options) {
