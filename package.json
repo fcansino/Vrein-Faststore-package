@@ -8,12 +8,14 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
+      "node": "./dist/index.js",
+      "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
     "./graphql": {
       "types": "./dist/graphql.d.ts",
-      "import": "./dist/graphql.mjs",
+      "node": "./dist/graphql.js",
+      "import": "./dist/graphql.js",
       "require": "./dist/graphql.js"
     },
     "./styles": "./dist/index.css"
