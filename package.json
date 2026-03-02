@@ -1,6 +1,6 @@
 {
   "name": "@vreinai/faststore-components",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Vrein components for FastStore: product carousels, image banners, and GraphQL resolvers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -19,6 +19,13 @@
       "require": "./dist/graphql.js"
     },
     "./styles": "./dist/index.css"
+  },
+  "typesVersions": {
+    "*": {
+      "graphql": [
+        "./dist/graphql.d.ts"
+      ]
+    }
   },
   "files": [
     "dist",
