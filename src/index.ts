@@ -25,3 +25,9 @@ export { VREIN_CONFIG, VREIN_ENV, getVreinConfig, enableVreinDebug, disableVrein
 // GraphQL (for registering in the consumer project)
 export { vreinResolvers } from './graphql/resolvers/vrein'
 export { vreinTypeDefs } from './graphql/typeDefs'
+
+// API Route handlers (mount at /api/vrein or custom path)
+export { createVreinApiHandler, createVreinRouteHandlers } from './graphql/handler'
+
+// SDK config
+export { setVreinApiEndpoint } from './sdk/request'

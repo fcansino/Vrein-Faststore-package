@@ -1,5 +1,5 @@
 import * as react_jsx_runtime from 'react/jsx-runtime';
-export { vreinResolvers, vreinTypeDefs } from './graphql.js';
+export { createVreinApiHandler, createVreinRouteHandlers, vreinResolvers, vreinTypeDefs } from './graphql.js';
 
 type VreinCarouselProps = {
     /** ID de la sección específica de Vrein (ej: BDW-HOME-Carrusel-1) */
@@ -264,4 +264,12 @@ declare const VREIN_ENV: {
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
 
-export { VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
+/**
+ * Override the default Vrein API endpoint.
+ * Call this once at app startup if you mount the handler at a different path.
+ *
+ * @example setVreinApiEndpoint('/api/custom-vrein')
+ */
+declare function setVreinApiEndpoint(endpoint: string): void;
+
+export { VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, setVreinApiEndpoint, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };

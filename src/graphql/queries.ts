@@ -3,7 +3,6 @@ import type { Operation } from '../sdk/request'
 export const VREIN_PRODUCTS_QUERY: Operation = {
   __meta__: {
     operationName: 'VreinProductsQuery',
-    operationHash: '',
   },
   query: `
     query VreinProductsQuery($sectionId: String!, $context: String) {
@@ -43,7 +42,6 @@ export const VREIN_PRODUCTS_QUERY: Operation = {
 export const VREIN_IMAGES_QUERY: Operation = {
   __meta__: {
     operationName: 'VreinImagesQuery',
-    operationHash: '',
   },
   query: `
     query VreinImagesQuery(
