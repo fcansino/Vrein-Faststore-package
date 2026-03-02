@@ -108,5 +108,17 @@ const baseRequest = async <V = any, D = any>(
     },
   })
 
-  return response.json()
+  const text = await response.text()
+
+  if (!response.ok) {
+    throw new Error(
+      `Vrein API request failed: ${response.status} ${response.statusText}${text ? ` — ${text}` : ''}`
+    )
+  }
+
+  if (!text) {
+    return { data: null as unknown as D, errors: [] }
+  }
+
+  return JSON.parse(text) as GraphQLResponse<D>
 }
