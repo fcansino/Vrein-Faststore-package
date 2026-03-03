@@ -6,6 +6,7 @@ import { Carousel, Skeleton } from '@faststore/ui'
 import type { VreinImageBannerProps } from './VreinImageBanner.types'
 import { useVreinImages } from './hooks/useVreinImages'
 import { useVreinMetrics } from '../VreinCarousel/hooks/useVreinMetrics'
+import { useInViewport } from '../VreinCarousel/hooks/useInViewport'
 import { Countdown } from './Countdown'
 
 function useIsMobile(breakpoint = 768) {
@@ -43,6 +44,13 @@ export const VreinImageBanner = ({
   const id = `vrein-banner-${sectionId}`
   const viewedOnce = useRef(false)
   const isMobile = useIsMobile()
+  const { ref: sectionRef, isVisible } = useInViewport(0.5)
+  const [isHovered, setIsHovered] = useState(false)
+
+  const isDebug = typeof window !== 'undefined' && (
+    (window as any).VREIN_DEBUG === true ||
+    new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
+  )
 
   const { data, loading } = useVreinImages({ sectionId })
   const { trackCustomMetric } = useVreinMetrics()
@@ -51,7 +59,7 @@ export const VreinImageBanner = ({
   const countdown = data?.smartCountdown
 
   useEffect(() => {
-    if (!viewedOnce.current && images.length > 0) {
+    if (!viewedOnce.current && isVisible && images.length > 0) {
       trackCustomMetric('banner_render', {
         sectionId,
         totalImages: images.length,
@@ -59,7 +67,7 @@ export const VreinImageBanner = ({
       })
       viewedOnce.current = true
     }
-  }, [images.length, countdown, sectionId, trackCustomMetric])
+  }, [isVisible, images.length, countdown, sectionId, trackCustomMetric])
 
   const handleBannerClick = (imageUrl: string, link: string) => {
     trackCustomMetric('banner_click', {
@@ -98,11 +106,6 @@ export const VreinImageBanner = ({
   }
 
   if (!images.length) {
-    const isDebug = typeof window !== 'undefined' && (
-      (window as any).VREIN_DEBUG === true ||
-      new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
-    )
-
     if (isDebug) {
       return (
         <section style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
@@ -168,12 +171,35 @@ export const VreinImageBanner = ({
     ) : imgEl
   }
 
+  const debugSectionStyle = isDebug ? {
+    position: 'relative' as const,
+    width: '100%',
+    overflow: 'hidden' as const,
+    ...(isHovered ? { outline: `2px solid #6529a1`, outlineOffset: '-2px' } : {}),
+  } : { position: 'relative' as const, width: '100%', overflow: 'hidden' as const }
+
+  const debugBadge = isDebug && isHovered ? (
+    <div style={{
+      position: 'absolute', top: 0, left: 0,
+      background: '#6529a1', color: 'white',
+      fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold',
+      padding: '2px 8px', borderRadius: '0 0 4px 0',
+      zIndex: 9999, pointerEvents: 'none',
+    }}>
+      {sectionId}
+    </div>
+  ) : null
+
   if (images.length === 1) {
     return (
       <section
-        style={{ position: 'relative', width: '100%', overflow: 'hidden' }}
+        ref={sectionRef}
+        style={debugSectionStyle}
         data-vrein-banner={sectionId}
+        onMouseEnter={() => isDebug && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
+        {debugBadge}
         <div style={{ position: 'relative' }}>
           {renderImage(images[0], 0)}
           {renderCountdown()}
@@ -184,10 +210,14 @@ export const VreinImageBanner = ({
 
   return (
     <section
-      style={{ position: 'relative', width: '100%', overflow: 'hidden' }}
+      ref={sectionRef}
+      style={debugSectionStyle}
       data-vrein-banner={sectionId}
       data-fs-content
+      onMouseEnter={() => isDebug && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      {debugBadge}
       <Carousel
         id={id}
         itemsPerPage={1}

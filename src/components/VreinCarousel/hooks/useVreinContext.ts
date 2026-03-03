@@ -20,13 +20,74 @@ interface VreinContextData {
   sessionGuid: string
 }
 
-function detectPageType(sectionId: string): PageType {
-  const upper = sectionId.toUpperCase()
-  if (upper.includes('-PDP-')) return 'product'
-  if (upper.includes('-PLP-')) return 'category'
-  if (upper.includes('-SEARCHNORESULT-')) return 'searchnoresult'
-  if (upper.includes('-SEARCH-')) return 'search'
-  return 'home'
+/**
+ * Detecta el tipo de página desde la URL, no desde el sectionId.
+ * Para search vs searchnoresult (ambas en /s), delega en detectSearchState().
+ */
+function detectPageType(): PageType {
+  if (typeof window === 'undefined') return 'home'
+
+  const pathname = window.location.pathname
+  const params = new URLSearchParams(window.location.search)
+
+  // PDP: product pages end with /p in FastStore
+  if (pathname.endsWith('/p')) return 'product'
+
+  // Search page: /s con param q
+  if (pathname === '/s' && params.has('q')) {
+    return detectSearchState()
+  }
+
+  // Home
+  if (pathname === '/' || pathname === '') return 'home'
+
+  // Category/PLP (cualquier otro path)
+  return 'category'
+}
+
+/**
+ * Distingue search con resultados de searchnoresult.
+ *
+ * FastStore renderiza [data-fs-product-listing-results-count] en el DOM
+ * SOLO cuando ProductGallery tiene totalCount > 0 (SSR — está antes de cualquier useEffect).
+ * Cuando no hay resultados, renderiza EmptyGallery y ese atributo no existe.
+ *
+ * Capas (de más a menos confiable):
+ * 1. DOM: [data-fs-product-listing-results-count] — señal nativa FastStore (SSR)
+ * 2. localStorage: bdw_search_results_count — escrito por braindw-tracking.js
+ * 3. dataLayer: busca view_item_list después del último evento search
+ * 4. Default: 'searchnoresult'
+ */
+function detectSearchState(): 'search' | 'searchnoresult' {
+  // 1. Señal DOM nativa de FastStore (viene del SSR, 100% confiable en useEffect)
+  if (document.querySelector('[data-fs-product-listing-results-count]') !== null) {
+    return 'search'
+  }
+
+  // 2. Flag del tracking script en localStorage
+  try {
+    const saved = localStorage.getItem('bdw_search_results_count')
+    if (saved !== null && parseInt(saved, 10) > 0) {
+      return 'search'
+    }
+  } catch { /* ignore */ }
+
+  // 3. Revisar dataLayer directamente
+  const dataLayer = (window as any).dataLayer
+  if (Array.isArray(dataLayer)) {
+    for (let i = dataLayer.length - 1; i >= 0; i--) {
+      const entry = dataLayer[i]
+      if (entry?.event === 'view_item_list' && entry?.ecommerce?.items?.length > 0) {
+        return 'search'
+      }
+      if (entry?.event === 'search') {
+        break // llegamos al search event sin encontrar view_item_list
+      }
+    }
+  }
+
+  // 4. Default: sin resultados (atributo DOM ausente = EmptyGallery renderizó)
+  return 'searchnoresult'
 }
 
 function extractScalar(value: any): string {
@@ -112,9 +173,7 @@ function getProductId(): string {
       const id = typeof parsed === 'object' ? String(parsed.id || parsed.sku || '') : String(parsed)
       if (id) return id
     }
-  } catch {
-    // ignore
-  }
+  } catch { }
 
   return ''
 }
@@ -162,7 +221,7 @@ export function useVreinContext(sectionId: string): string {
 function buildContext(sectionId: string): string {
   if (typeof window === 'undefined') return 'home//'
 
-  const pageType = detectPageType(sectionId)
+  const pageType = detectPageType()
   const userData = getUserData()
 
   const contextData: VreinContextData = {

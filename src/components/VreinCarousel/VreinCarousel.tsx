@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ProductShelf,
   ProductShelfItems,
@@ -8,10 +8,47 @@ import {
 } from '@faststore/ui'
 
 import { VreinCarouselProps } from './VreinCarousel.types'
-import { useVreinRecommendations, useVreinMetrics, useVreinContext } from './hooks'
+import { useVreinRecommendations, useVreinMetrics, useVreinContext, useInViewport } from './hooks'
 import { getShelfTitleTag } from './clientConfig'
 import { VreinProductItem } from './VreinProductItem'
 import { vreinToProductSummary } from './vreinToProductSummary'
+
+/**
+ * Determina si un sectionId pertenece a la categoría de search-result o search-no-result.
+ * Solo relevante cuando el usuario está en /s?q=... — en otras páginas siempre renderiza.
+ *
+ * Lógica:
+ *   - sectionId contiene -SNR- o SEARCHNORESULT → carousel de "sin resultados"
+ *   - sectionId contiene -SR- o -SEARCH- (sin NORESULT) → carousel de "con resultados"
+ *   - cualquier otro → sin restricción, siempre visible
+ *
+ * La detección del estado real de la página usa [data-fs-product-listing-results-count],
+ * el mismo atributo que usa detectSearchState() en useVreinContext.
+ */
+function checkShouldRenderOnPage(sectionId: string): boolean {
+  if (typeof window === 'undefined') return true
+
+  const pathname = window.location.pathname
+  const params = new URLSearchParams(window.location.search)
+
+  // Solo filtrar en la página de búsqueda
+  if (pathname !== '/s' || !params.has('q')) return true
+
+  const upper = sectionId.toUpperCase()
+  const isSnr = upper.includes('-SNR-') || upper.includes('SEARCHNORESULT')
+  const isSr = upper.includes('-SR-') || (upper.includes('-SEARCH-') && !isSnr)
+
+  // Carrusel no específico de search → siempre visible
+  if (!isSnr && !isSr) return true
+
+  // Señal DOM nativa de FastStore: presente solo cuando hay resultados
+  const hasResults = document.querySelector('[data-fs-product-listing-results-count]') !== null
+
+  if (isSnr) return !hasResults  // SNR: solo cuando NO hay resultados
+  if (isSr)  return hasResults   // SR: solo cuando HAY resultados
+
+  return true
+}
 
 export const VreinCarousel = ({
   sectionId,
@@ -19,11 +56,43 @@ export const VreinCarousel = ({
 }: VreinCarouselProps) => {
   const itemsPerPage = 5
 
+  // Guard de página: en /s solo renderiza SR cuando hay resultados, SNR cuando no hay
+  // Starts true para evitar mismatch de hidratación SSR; se corrige en useEffect
+  const [isPageMatch, setIsPageMatch] = useState(true)
+  useEffect(() => {
+    setIsPageMatch(checkShouldRenderOnPage(sectionId))
+
+    const pathname = window.location.pathname
+    const params = new URLSearchParams(window.location.search)
+    if (pathname !== '/s' || !params.has('q')) return
+
+    const upper = sectionId.toUpperCase()
+    const isSnr = upper.includes('-SNR-') || upper.includes('SEARCHNORESULT')
+    const isSr = upper.includes('-SR-') || (upper.includes('-SEARCH-') && !isSnr)
+    if (!isSnr && !isSr) return
+
+    const observer = new MutationObserver(() => {
+      setIsPageMatch(checkShouldRenderOnPage(sectionId))
+    })
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+
+    const timeout = setTimeout(() => observer.disconnect(), 10000)
+
+    return () => {
+      observer.disconnect()
+      clearTimeout(timeout)
+    }
+  }, [sectionId])
+
   const context = useVreinContext(sectionId)
 
   const id = `vrein-carousel-${sectionId}`
   const viewedOnce = useRef(false)
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+  const { ref: sectionRef, isVisible } = useInViewport(0.5)
+
+  // Debug hover state
+  const [isHovered, setIsHovered] = useState(false)
 
   const { data, loading } = useVreinRecommendations({
     sectionId,
@@ -41,18 +110,27 @@ export const VreinCarousel = ({
     return items.map((item) => vreinToProductSummary(item))
   }, [items, productCardOverride])
 
+  // Tracking de render del carrusel — solo cuando >50% visible en viewport
   useEffect(() => {
-    if (!viewedOnce.current && items.length && data) {
+    if (!viewedOnce.current && isVisible && items.length && data) {
       trackCarouselRender(id, {
         sectionId,
         totalItems: items.length,
         title: data.title,
-        endpoint: data.endpointName || 'unknown'
+        endpoint: data.endpointName || 'unknown',
+        products: items.map((item: any) => ({
+          productId: item.sku || item.id || '',
+          productName: item.isVariantOf?.name || item.name || '',
+        })),
       })
       viewedOnce.current = true
     }
-  }, [items.length, data, sectionId, id, trackCarouselRender])
+  }, [isVisible, items.length, data, sectionId, id, trackCarouselRender])
 
+  // Guard de página: no renderizar si la página no coincide con el tipo de carrusel
+  if (!isPageMatch) return null
+
+  // Mostrar mensaje si no hay productos
   if (!loading && items.length === 0) {
     console.warn('[VreinCarousel] No products to display', { sectionId })
 
@@ -123,11 +201,34 @@ export const VreinCarousel = ({
     )
   }
 
+  const isDebug = typeof window !== 'undefined' && (
+    (window as any).VREIN_DEBUG === true ||
+    new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
+  )
+
   return (
     <section
+      ref={sectionRef}
       className="section-product-shelf layout__section section"
       data-vrein-section={sectionId}
+      onMouseEnter={() => isDebug && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={isDebug ? {
+        position: 'relative',
+        ...(isHovered ? { outline: `2px solid #6529a1`, outlineOffset: '-2px' } : {}),
+      } : undefined}
     >
+      {isDebug && isHovered && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0,
+          background: '#6529a1', color: 'white',
+          fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold',
+          padding: '2px 8px', borderRadius: '0 0 4px 0',
+          zIndex: 9999, pointerEvents: 'none',
+        }}>
+          {sectionId}
+        </div>
+      )}
       {title && (
         <TitleTag className="text__title-section" style={{ textAlign: 'center', marginBottom: 'var(--fs-spacing-6)' }}>
           {title}

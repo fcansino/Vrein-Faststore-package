@@ -24,6 +24,7 @@ export function useVreinMetrics() {
     totalItems: number
     title?: string
     endpoint?: string
+    products?: Array<{ productId: string; productName: string }>
   }) => {
     if (isDebugMode()) {
       console.log('[Vrein Metrics] Carousel rendered:', { carouselId, ...data })
@@ -32,7 +33,8 @@ export function useVreinMetrics() {
       sectionId: data.sectionId,
       totalItems: data.totalItems,
       title: data.title,
-      endpoint: data.endpoint
+      endpoint: data.endpoint,
+      products: data.products,
     })
   }, [])
 

@@ -163,6 +163,10 @@ declare function useVreinMetrics(): {
         totalItems: number;
         title?: string;
         endpoint?: string;
+        products?: Array<{
+            productId: string;
+            productName: string;
+        }>;
     }) => void;
     trackCarouselClick: (carouselId: string, data: {
         sectionId: string;
