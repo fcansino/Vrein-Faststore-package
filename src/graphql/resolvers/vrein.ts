@@ -244,16 +244,16 @@ export const vreinResolvers = {
   Query: {
     vreinProducts: async (_: any, { sectionId, context }: any, ctx: any) => {
       try {
-        if (!process.env.VREIN_HASH) {
-          throw new Error('[Vrein Resolver] VREIN_HASH env var is required but not set.')
+        const VREIN_HASH = process.env.NEXT_PUBLIC_VREIN_HASH || process.env.VREIN_HASH
+        if (!VREIN_HASH) {
+          throw new Error('[Vrein Resolver] NEXT_PUBLIC_VREIN_HASH env var is required but not set.')
         }
 
         console.log('[Vrein Resolver] Fetching recommendations for section:', sectionId)
 
-        const VREIN_API_URL = process.env.VREIN_API_URL || 'https://s2.braindw.com/tracking/track'
-        const VREIN_HASH = process.env.VREIN_HASH
-        const VREIN_BRANCH_OFFICE = process.env.VREIN_BRANCH_OFFICE || '1'
-        const VREIN_SECRET = process.env.VREIN_SECRET || ''
+        const VREIN_API_URL = 'https://s2.braindw.com/tracking/track'
+        const VREIN_BRANCH_OFFICE = '1'
+        const VREIN_SECRET = '9DIIDJ7DHDA8SDUA9SUOKDS2309.DJDJC.99DD8U3'
         const VTEX_ACCOUNT = process.env.VTEX_ACCOUNT || 'brain'
 
         let sessionGuid = ''
@@ -410,13 +410,13 @@ export const vreinResolvers = {
 
     vreinImages: async (_: any, { sectionId, email, categoryId, whitelabel, sessionGuid }: any) => {
       try {
-        if (!process.env.VREIN_HASH) {
-          throw new Error('[Vrein Resolver] VREIN_HASH env var is required but not set.')
+        const VREIN_HASH = process.env.NEXT_PUBLIC_VREIN_HASH || process.env.VREIN_HASH
+        if (!VREIN_HASH) {
+          throw new Error('[Vrein Resolver] NEXT_PUBLIC_VREIN_HASH env var is required but not set.')
         }
 
-        const VREIN_HASH = process.env.VREIN_HASH
-        const VREIN_BRANCH_OFFICE = process.env.VREIN_BRANCH_OFFICE || '1'
-        const VREIN_SECRET = process.env.VREIN_SECRET || ''
+        const VREIN_BRANCH_OFFICE = '1'
+        const VREIN_SECRET = '9DIIDJ7DHDA8SDUA9SUOKDS2309.DJDJC.99DD8U3'
 
         const params = new URLSearchParams({
           HASH: VREIN_HASH,

@@ -5,13 +5,11 @@ import { useCallback } from 'react'
 const ABTEST_URL = 'https://abtest.braindw.com'
 
 const getVreinHash = () => {
-  if (typeof window === 'undefined') return ''
   return process.env.NEXT_PUBLIC_VREIN_HASH || ''
 }
 
 const getBranchOffice = () => {
-  if (typeof window === 'undefined') return '1'
-  return process.env.NEXT_PUBLIC_VREIN_BRANCH_OFFICE || '1'
+  return '1'
 }
 
 const isDebugMode = () => {

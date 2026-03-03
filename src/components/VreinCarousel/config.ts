@@ -18,7 +18,7 @@ export function getVreinConfig() {
   return {
     clientKey: process.env.NEXT_PUBLIC_VREIN_HASH || '',
     vreinHash: process.env.NEXT_PUBLIC_VREIN_HASH || '',
-    branchOffice: process.env.NEXT_PUBLIC_VREIN_BRANCH_OFFICE || '1',
+    branchOffice: '1',
   }
 }
 
@@ -30,11 +30,8 @@ export const VREIN_ENV = {
     return process.env.NEXT_PUBLIC_VREIN_HASH || ''
   },
   get BRANCH_OFFICE() {
-    return process.env.NEXT_PUBLIC_VREIN_BRANCH_OFFICE || '1'
+    return '1'
   },
-  get VREIN_SECRET() {
-    return process.env.NEXT_PUBLIC_VREIN_SECRET || ''
-  }
 } as const
 
 export function enableVreinDebug() {

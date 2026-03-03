@@ -1,181 +1,153 @@
 # @vreinai/faststore-components
 
-Componentes y utilidades de **Vrein AI** para proyectos [FastStore](https://www.faststore.dev/) (Next.js).
+Resolvers GraphQL server-side y utilidades de **Vrein AI** para proyectos [FastStore](https://www.faststore.dev/) (Next.js + VTEX).
 
-Incluye:
+---
 
-- **VreinCarousel** — carrusel de productos con recomendaciones personalizadas de Vrein AI
-- **VreinImageBanner** — banner de imágenes dinámico con soporte de countdown inteligente
-- **GraphQL handler** — endpoint standalone que bypasea el sistema de persisted queries de FastStore
-- **SDK** — hooks y utilidades para consumir la API de Vrein desde el cliente
+## Qué incluye este paquete
+
+- **Resolvers GraphQL** (`vreinProducts`, `vreinImages`, `vreinProductData`, `vreinCategoryId`) — lógica server-side que consulta la API de Vrein y enriquece con el Catalog API de VTEX
+- **Tipos TypeScript** — para los datos retornados por los resolvers
+- **Configuración** — helpers de entorno y config por cliente
+
+> **Nota:** Los componentes UI (VreinCarousel, VreinImageBanner), hooks y estilos se distribuyen como **archivos locales** en el proyecto consumidor (patron template), no como imports del paquete. Esto es necesario porque FastStore requiere que los hooks con `gql()` estén en el proyecto para registrar las queries como persisted documents en build time.
 
 ---
 
 ## Instalación
 
 ```bash
-npm install @vreinai/faststore-components
-```
-
-### Peer dependencies
-
-```bash
-npm install react react-dom next swr @faststore/ui
+yarn add @vreinai/faststore-components
 ```
 
 ---
 
 ## Variables de entorno
 
-Agrega estas variables al `.env` de tu proyecto:
+Solo necesitas configurar **2 variables** en `vtex.env` (o en Vercel > Settings > Environment Variables):
 
 ```env
-NEXT_PUBLIC_VREIN_HASH=tu_client_key
-NEXT_PUBLIC_VREIN_BRANCH_OFFICE=1
-NEXT_PUBLIC_VREIN_SECRET=tu_secret
+# Hash único de tu tienda — proporcionado por el equipo de Vrein
+NEXT_PUBLIC_VREIN_HASH=<tu_hash>
+
+# Account VTEX de tu tienda
+VTEX_ACCOUNT=<tu_account>
 ```
+
+Las constantes del paquete están hardcodeadas (iguales para todos los clientes):
+
+| Constante | Valor |
+|-----------|-------|
+| `BRANCH_OFFICE` | `1` |
+| `SECRET` | hardcodeado internamente |
+| `API_URL` | `https://s2.braindw.com/tracking/track` |
+
+> El resolver lee `NEXT_PUBLIC_VREIN_HASH` con fallback a `VREIN_HASH`. Si tu proyecto anterior usaba `VREIN_HASH`, sigue funcionando.
 
 ---
 
-## Setup del API Route
+## Integración en FastStore
 
-FastStore usa **persisted queries** en `/api/graphql` y rechaza cualquier operación no registrada. Por eso este paquete requiere montar un handler propio.
+### 1. Registrar los resolvers
 
-### App Router (Next.js 13+)
-
-```ts
-// app/api/vrein/route.ts
-import { createVreinRouteHandlers } from '@vreinai/faststore-components/graphql'
-
-export const { GET, POST } = createVreinRouteHandlers()
-```
-
-### Pages Router
+En `src/graphql/thirdParty/resolvers/vrein.ts`:
 
 ```ts
-// pages/api/vrein.ts
-import { createVreinApiHandler } from '@vreinai/faststore-components/graphql'
+import { vreinResolvers } from '@vreinai/faststore-components/graphql'
 
-export default createVreinApiHandler()
+export default vreinResolvers
 ```
 
-> Por defecto los componentes apuntan a `/api/vrein`. Si montás el handler en otra ruta, llamá `setVreinApiEndpoint('/tu-ruta')` una vez al inicio de la app.
+En `src/graphql/thirdParty/resolvers/index.ts`, agregar el spread:
 
----
+```ts
+import vrein from './vrein'
 
-## Componentes
-
-### VreinCarousel
-
-Carrusel de productos con recomendaciones personalizadas por sección.
-
-```tsx
-import { VreinCarousel } from '@vreinai/faststore-components'
-
-export default function HomePage() {
-  return (
-    <VreinCarousel sectionId="HOME-Carrusel-1" />
-  )
+export const resolvers = {
+  Query: {
+    ...vrein.Query,
+    // ...otros resolvers
+  }
 }
 ```
 
-**Props**
+### 2. Registrar los tipos GraphQL
 
-| Prop | Tipo | Descripción |
-|------|------|-------------|
-| `sectionId` | `string` | ID de la sección configurada en Vrein (ej: `BDW-HOME-Carrusel-1`) |
-| `productCardOverride` | `{ Component, props? } \| null` | Componente de producto personalizado del proyecto consumidor |
+Copiar `src/graphql/thirdParty/typeDefs/vrein.graphql` al proyecto. El CLI de FastStore los procesa automáticamente.
 
----
+### 3. Copiar archivos de componentes
 
-### VreinImageBanner
+Los siguientes archivos se copian como template al proyecto consumidor:
 
-Banner de imágenes dinámico con múltiples imágenes, soporte mobile/desktop y countdown opcional.
+```
+src/
+  components/sections/
+    VreinCarousel/          ← copiar completo
+    VreinImageBanner/       ← copiar completo
+  scripts/
+    ThirdPartyScripts.tsx   ← copiar
+```
+
+Luego registrar en `src/components/index.tsx`:
 
 ```tsx
-import { VreinImageBanner } from '@vreinai/faststore-components'
+import { VreinCarousel } from './sections/VreinCarousel'
+import { VreinImageBanner } from './sections/VreinImageBanner'
 
-export default function HomePage() {
-  return (
-    <VreinImageBanner
-      sectionId="HOME-Banner-1"
-      showArrows
-      showDots
-      autoplay
-    />
-  )
-}
+export default { VreinCarousel, VreinImageBanner }
 ```
 
-**Props**
+### 4. ThirdPartyScripts
 
-| Prop | Tipo | Default | Descripción |
-|------|------|---------|-------------|
-| `sectionId` | `string` | — | ID de la sección en Vrein |
-| `pageContext` | `string` | — | Contexto de página para personalización |
-| `height` | `number` | — | Altura del banner en px |
-| `showArrows` | `boolean` | `false` | Muestra flechas de navegación |
-| `showDots` | `boolean` | `false` | Muestra indicadores de posición |
-| `autoplay` | `boolean` | `false` | Avance automático entre imágenes |
-| `showLazyLoading` | `boolean` | `false` | Activa lazy loading en imágenes |
-| `lazyLoadingHeight` | `number` | — | Altura del placeholder de lazy loading |
+El script de tracking inyecta el hash al cliente via `window.__VREIN_CONFIG`. Agregar en el layout raíz:
+
+```tsx
+import ThirdPartyScripts from 'src/scripts/ThirdPartyScripts'
+
+// En el layout:
+<ThirdPartyScripts />
+```
+
+Lee `process.env.NEXT_PUBLIC_VREIN_HASH` en el servidor y lo escribe en el HTML. Los componentes client-side lo leen desde `process.env.NEXT_PUBLIC_VREIN_HASH` directamente (Next.js lo inlinea en el bundle).
+
+### 5. Sincronizar schemas CMS
+
+Copiar los archivos de `cms/` al proyecto y ejecutar:
+
+```bash
+yarn cms-sync
+```
 
 ---
 
-## Hooks
+## Resolvers disponibles
 
-Para casos de uso avanzados los hooks están disponibles por separado.
-
-```ts
-import {
-  useVreinRecommendations,
-  useVreinImages,
-  useVreinMetrics,
-  useVreinContext,
-} from '@vreinai/faststore-components'
-```
-
-| Hook | Descripción |
-|------|-------------|
-| `useVreinRecommendations` | Obtiene productos recomendados para una sección |
-| `useVreinImages` | Obtiene imágenes de banner para una sección |
-| `useVreinMetrics` | Registra métricas de interacción (impresiones, clicks) |
-| `useVreinContext` | Lee el contexto de sesión de Vrein (guid, etc.) |
-
----
-
-## Utilidades
-
-```ts
-import {
-  vreinToProductSummary,
-  getClientConfig,
-  getShelfTitleTag,
-  setVreinApiEndpoint,
-  enableVreinDebug,
-  disableVreinDebug,
-} from '@vreinai/faststore-components'
-```
-
-| Utilidad | Descripción |
+| Resolver | Descripción |
 |----------|-------------|
-| `vreinToProductSummary` | Convierte un producto Vrein al formato `ProductSummary` de FastStore |
-| `getClientConfig` | Retorna la configuración del cliente Vrein |
-| `getShelfTitleTag` | Retorna el tag HTML del título del shelf según configuración |
-| `setVreinApiEndpoint(path)` | Sobreescribe la ruta del API handler (default: `/api/vrein`) |
-| `enableVreinDebug()` | Activa logs de debug en `window.VREIN_DEBUG` |
-| `disableVreinDebug()` | Desactiva los logs de debug |
+| `vreinProducts(sectionId, context)` | Recomendaciones de productos por sección |
+| `vreinImages(sectionId, ...)` | Banners SmartImage con countdown |
+| `vreinProductData(productId, skuId)` | Datos completos de un producto para persistencia |
+| `vreinCategoryId(pathname)` | Resuelve pathname de URL a categoryId numérico de VTEX |
 
 ---
 
-## CMS Sections
+## Variables de cache opcionales (server-side)
 
-El paquete incluye schemas de secciones para el CMS de FastStore en la carpeta `cms/`:
+```env
+VREIN_CACHE_TTL_MS=60000     # Cache de respuestas Vrein API (default: 1 min)
+VTEX_CACHE_TTL_MS=300000     # Cache de productos VTEX Catalog (default: 5 min)
+```
 
-- `vreinCarouselSection.json`
-- `vreinImageBannerSection.json`
+---
 
-Copiá estos archivos a la carpeta `cms/` de tu proyecto para habilitar la edición de secciones desde el CMS de FastStore.
+## Debugging
+
+En la consola del navegador del proyecto consumidor:
+
+```js
+vrein_debug()      // Activa logs + borde visual en carruseles/banners
+vrein_debug_off()  // Desactiva
+```
 
 ---
 

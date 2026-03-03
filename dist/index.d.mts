@@ -263,7 +263,6 @@ declare const VREIN_ENV: {
     readonly CLIENT_KEY: string;
     readonly VREIN_HASH: string;
     readonly BRANCH_OFFICE: string;
-    readonly VREIN_SECRET: string;
 };
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
