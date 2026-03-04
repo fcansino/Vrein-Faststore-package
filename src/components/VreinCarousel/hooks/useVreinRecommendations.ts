@@ -36,7 +36,7 @@ export function useVreinRecommendations({
   const { data, error } = useQuery<VreinProductsQueryResponse>(
     VREIN_PRODUCTS_QUERY,
     variables,
-    { doNotRun: !sectionId, fetchOptions: FETCH_OPTIONS }
+    { doNotRun: !sectionId || !context, fetchOptions: FETCH_OPTIONS }
   )
 
   return {

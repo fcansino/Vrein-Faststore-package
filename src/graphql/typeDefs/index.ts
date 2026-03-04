@@ -46,6 +46,7 @@ type VreinProductConnection {
   totalCount: Int!
   title: String!
   endpointName: String!
+  apiUrl: String!
 }
 
 type VreinFullProduct {

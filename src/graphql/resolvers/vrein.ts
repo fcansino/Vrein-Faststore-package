@@ -298,7 +298,7 @@ export const vreinResolvers = {
 
           if (!vreinResponse.ok) {
             console.error('[Vrein Resolver] Vrein API error:', vreinResponse.status)
-            return { products: [], totalCount: 0, title: '' }
+            return { products: [], totalCount: 0, title: '', endpointName: '', apiUrl: vreinUrl }
           }
 
           vreinData = await vreinResponse.json()
@@ -312,7 +312,7 @@ export const vreinResolvers = {
 
         if (!section || !section.Products || section.Products.length === 0) {
           console.warn('[Vrein Resolver] Section not found or empty:', sectionId)
-          return { products: [], totalCount: 0, title: '', endpointName: '' }
+          return { products: [], totalCount: 0, title: '', endpointName: '', apiUrl: vreinUrl }
         }
 
         const skus: string[] = section.Products
@@ -400,11 +400,12 @@ export const vreinResolvers = {
           products,
           totalCount: products.length,
           title: section.Title || '',
-          endpointName: section.Endpoint || 'Contenidos'
+          endpointName: section.Endpoint || 'Contenidos',
+          apiUrl: vreinUrl
         }
       } catch (error) {
         console.error('[Vrein Resolver] Error:', error)
-        return { products: [], totalCount: 0, title: '', endpointName: '' }
+        return { products: [], totalCount: 0, title: '', endpointName: '', apiUrl: '' }
       }
     },
 

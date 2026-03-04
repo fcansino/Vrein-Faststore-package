@@ -34,6 +34,7 @@ export const VREIN_PRODUCTS_QUERY: Operation = {
         totalCount
         title
         endpointName
+        apiUrl
       }
     }
   `,

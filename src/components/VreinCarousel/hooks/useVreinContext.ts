@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
 type PageType = 'home' | 'product' | 'category' | 'search' | 'searchnoresult'
@@ -47,24 +47,12 @@ function detectPageType(): PageType {
 
 /**
  * Distingue search con resultados de searchnoresult.
- *
- * FastStore renderiza [data-fs-product-listing-results-count] en el DOM
- * SOLO cuando ProductGallery tiene totalCount > 0 (SSR — está antes de cualquier useEffect).
- * Cuando no hay resultados, renderiza EmptyGallery y ese atributo no existe.
- *
- * Capas (de más a menos confiable):
- * 1. DOM: [data-fs-product-listing-results-count] — señal nativa FastStore (SSR)
- * 2. localStorage: bdw_search_results_count — escrito por braindw-tracking.js
- * 3. dataLayer: busca view_item_list después del último evento search
- * 4. Default: 'searchnoresult'
  */
 function detectSearchState(): 'search' | 'searchnoresult' {
-  // 1. Señal DOM nativa de FastStore (viene del SSR, 100% confiable en useEffect)
   if (document.querySelector('[data-fs-product-listing-results-count]') !== null) {
     return 'search'
   }
 
-  // 2. Flag del tracking script en localStorage
   try {
     const saved = localStorage.getItem('bdw_search_results_count')
     if (saved !== null && parseInt(saved, 10) > 0) {
@@ -72,7 +60,6 @@ function detectSearchState(): 'search' | 'searchnoresult' {
     }
   } catch { /* ignore */ }
 
-  // 3. Revisar dataLayer directamente
   const dataLayer = (window as any).dataLayer
   if (Array.isArray(dataLayer)) {
     for (let i = dataLayer.length - 1; i >= 0; i--) {
@@ -81,12 +68,11 @@ function detectSearchState(): 'search' | 'searchnoresult' {
         return 'search'
       }
       if (entry?.event === 'search') {
-        break // llegamos al search event sin encontrar view_item_list
+        break
       }
     }
   }
 
-  // 4. Default: sin resultados (atributo DOM ausente = EmptyGallery renderizó)
   return 'searchnoresult'
 }
 
@@ -150,6 +136,10 @@ function getUserData() {
   }
 }
 
+/**
+ * Busca el productId en el dataLayer para la página actual.
+ * Verifica que el view_item corresponda a la URL actual (por slug en el pathname).
+ */
 function getProductId(): string {
   if (typeof window === 'undefined') return ''
 
@@ -204,15 +194,146 @@ function getCategoryId(): string {
   return ''
 }
 
+/**
+ * Tiempo máximo (ms) que esperamos a que el dataLayer tenga el evento
+ * correspondiente a la página actual antes de construir el contexto de todos modos.
+ */
+const DATA_READY_TIMEOUT_MS = 3000
+const DATA_READY_POLL_INTERVAL_MS = 150
+
+const dbg = (...args: any[]) => {
+  if (typeof window !== 'undefined' && (window as any).VREIN_DEBUG) {
+    console.log(...args)
+  }
+}
+
+/**
+ * Verifica si los datos del dataLayer/localStorage ya reflejan la página actual.
+ * Retorna true cuando los datos están "listos" para construir el parámetro u.
+ */
+function isDataReadyForCurrentPage(pageType: PageType): boolean {
+  if (typeof window === 'undefined') return true
+
+  switch (pageType) {
+    case 'product': {
+      // En PDP necesitamos que el dataLayer tenga un view_item.
+      // Verificamos que exista un view_item cuyo item tenga un URL/slug
+      // que coincida con el pathname actual.
+      const pathname = window.location.pathname
+      // Extraer slug del pathname: /mi-producto/p -> mi-producto
+      const slug = pathname.replace(/\/p$/, '').split('/').filter(Boolean).pop() || ''
+
+      const dataLayer = (window as any).dataLayer
+      if (!Array.isArray(dataLayer)) return false
+
+      for (let i = dataLayer.length - 1; i >= 0; i--) {
+        const entry = dataLayer[i]
+        if (entry?.event === 'view_item' && entry?.ecommerce?.items?.[0]) {
+          // Verificar que este view_item corresponda a la página actual
+          const item = entry.ecommerce.items[0]
+          // FastStore pone el slug/link en item_id o en la URL del item
+          // Si hay un item con datos, consideramos que es el actual
+          // (FastStore emite view_item una sola vez por carga de PDP)
+          if (item.item_id || item.item_variant) {
+            return true
+          }
+        }
+      }
+
+      // Fallback: si bdw_last_sku ya se actualizó en esta sesión
+      // (braindw-tracking.js lo escribe al procesar view_item)
+      return false
+    }
+
+    case 'category': {
+      // Para categoría, verificar que bdw_last_category esté actualizado
+      // o que haya un view_item_list en el dataLayer
+      const dataLayer = (window as any).dataLayer
+      if (Array.isArray(dataLayer)) {
+        for (let i = dataLayer.length - 1; i >= 0; i--) {
+          const entry = dataLayer[i]
+          if (entry?.event === 'view_item_list') {
+            return true
+          }
+        }
+      }
+      // Si no hay view_item_list, igual podemos proceder con los datos
+      // que tengamos en localStorage — la categoría se puede resolver
+      // desde la URL en el resolver
+      return true
+    }
+
+    case 'search':
+    case 'searchnoresult': {
+      // El término de búsqueda viene de la URL (?q=...), siempre disponible
+      return true
+    }
+
+    case 'home':
+    default:
+      // Home no depende de datos específicos de la página
+      return true
+  }
+}
+
 export function useVreinContext(sectionId: string): string {
   const pathname = usePathname()
   const [context, setContext] = useState<string>(() => {
     if (typeof window === 'undefined') return 'home//'
-    return buildContext(sectionId)
+    // Intentar construir inmediatamente si los datos ya están listos
+    const pageType = detectPageType()
+    if (isDataReadyForCurrentPage(pageType)) {
+      return buildContext(sectionId)
+    }
+    // Si no están listos, retornar string vacío para que useVreinRecommendations
+    // no dispare la query prematuramente
+    return ''
   })
 
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   useEffect(() => {
-    setContext(buildContext(sectionId))
+    // Limpiar timers anteriores
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    if (intervalRef.current) clearInterval(intervalRef.current)
+
+    const pageType = detectPageType()
+
+    // Si los datos ya están listos, construir contexto inmediatamente
+    if (isDataReadyForCurrentPage(pageType)) {
+      setContext(buildContext(sectionId))
+      return
+    }
+
+    // Si no están listos, hacer polling hasta que lo estén o se agote el timeout
+    dbg('[VreinContext] Waiting for page data to be ready...', { pageType, pathname })
+
+    let resolved = false
+
+    intervalRef.current = setInterval(() => {
+      if (isDataReadyForCurrentPage(pageType)) {
+        resolved = true
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+        dbg('[VreinContext] Data ready, building context')
+        setContext(buildContext(sectionId))
+      }
+    }, DATA_READY_POLL_INTERVAL_MS)
+
+    // Timeout: construir con lo que tengamos después de DATA_READY_TIMEOUT_MS
+    timeoutRef.current = setTimeout(() => {
+      if (!resolved) {
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        dbg('[VreinContext] Timeout reached, building context with available data')
+        setContext(buildContext(sectionId))
+      }
+    }, DATA_READY_TIMEOUT_MS)
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
   }, [sectionId, pathname])
 
   return context
@@ -250,6 +371,6 @@ function buildContext(sectionId: string): string {
   }
 
   const contextJson = JSON.stringify(contextData)
-  console.log('[VreinContext] Built context:', contextJson)
+  dbg('[VreinContext] Built context:', contextJson)
   return contextJson
 }
