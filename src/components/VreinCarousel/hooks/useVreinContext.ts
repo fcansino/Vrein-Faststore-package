@@ -256,7 +256,6 @@ function isGuidReady(): boolean {
     return false
   }
 }
-}
 
 /**
  * @param sectionId - ID de la sección del carrusel

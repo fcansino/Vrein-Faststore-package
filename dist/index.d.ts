@@ -83,6 +83,7 @@ interface VreinProductConnection {
     totalCount: number;
     title: string;
     endpointName: string;
+    apiUrl: string;
 }
 interface VreinBannerImage {
     title: string;
@@ -135,6 +136,7 @@ interface VreinRecommendationsData {
     products: VreinProduct[];
     title: string;
     endpointName: string;
+    apiUrl: string;
 }
 interface VreinRecommendationsParams {
     sectionId: string;
@@ -186,7 +188,14 @@ declare global {
     }
 }
 
-declare function useVreinContext(sectionId: string): string;
+type PageType = 'home' | 'product' | 'category' | 'search' | 'searchnoresult';
+/**
+ * @param sectionId - ID de la sección del carrusel
+ * @param pageTypeOverride - Fuerza el pageType. Usar para SR/SNR donde ambas
+ *   secciones están en la misma URL /s y detectPageType no puede distinguirlas.
+ *   Pasar 'search' para secciones SR, 'searchnoresult' para SNR.
+ */
+declare function useVreinContext(sectionId: string, pageTypeOverride?: PageType): string;
 
 declare function vreinToProductSummary(item: VreinProduct): {
     id: string;
