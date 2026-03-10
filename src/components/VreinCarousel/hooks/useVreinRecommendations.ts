@@ -9,6 +9,7 @@ interface VreinRecommendationsData {
   products: VreinProduct[]
   title: string
   endpointName: string
+  apiUrl: string
 }
 
 interface VreinProductsQueryResponse {
@@ -45,6 +46,7 @@ export function useVreinRecommendations({
           products: data.vreinProducts.products ?? [],
           title: data.vreinProducts.title ?? '',
           endpointName: data.vreinProducts.endpointName ?? '',
+          apiUrl: data.vreinProducts.apiUrl ?? '',
         }
       : null,
     loading: !data && !error,

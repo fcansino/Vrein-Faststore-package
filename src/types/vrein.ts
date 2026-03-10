@@ -40,6 +40,7 @@ export interface VreinProductConnection {
   totalCount: number
   title: string
   endpointName: string
+  apiUrl: string
 }
 
 export interface VreinBannerImage {

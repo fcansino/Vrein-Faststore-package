@@ -315,17 +315,17 @@ export const vreinResolvers = {
           return { products: [], totalCount: 0, title: '', endpointName: '', apiUrl: vreinUrl }
         }
 
-        const skus: string[] = section.Products
+        const productIds: string[] = section.Products
 
         const cachedProducts: Map<string, any> = new Map()
         const fetchNeeded: string[] = []
 
-        for (const sku of skus) {
-          const cached = getCached<any>(skuProductCache, sku)
+        for (const productId of productIds) {
+          const cached = getCached<any>(skuProductCache, productId)
           if (cached) {
-            cachedProducts.set(sku, cached)
+            cachedProducts.set(productId, cached)
           } else {
-            fetchNeeded.push(sku)
+            fetchNeeded.push(productId)
           }
         }
 
@@ -336,7 +336,7 @@ export const vreinResolvers = {
 
           const batchResults = await Promise.allSettled(
             chunks.map(async (chunk) => {
-              const fqParams = chunk.map((sku) => `fq=skuId:${sku}`).join('&')
+              const fqParams = chunk.map((productId) => `fq=productId:${productId}`).join('&')
               const url = `https://${VTEX_ACCOUNT}.vtexcommercestable.com.br/api/catalog_system/pub/products/search?${fqParams}`
 
               const response = await fetch(url, {
@@ -348,7 +348,7 @@ export const vreinResolvers = {
               })
 
               if (!response.ok) {
-                throw new Error(`HTTP ${response.status} for batch of ${chunk.length} SKUs`)
+                throw new Error(`HTTP ${response.status} for batch of ${chunk.length} productIds`)
               }
 
               const products: any[] = await response.json()
@@ -360,24 +360,22 @@ export const vreinResolvers = {
             if (result.status === 'fulfilled') {
               const { chunk, products } = result.value
 
-              const skuToProduct = new Map<string, any>()
+              const productIdToProduct = new Map<string, any>()
               for (const vtexProduct of products) {
-                if (!vtexProduct?.items) continue
-                for (const item of vtexProduct.items) {
-                  if (chunk.includes(String(item.itemId))) {
-                    skuToProduct.set(String(item.itemId), vtexProduct)
-                  }
+                if (!vtexProduct?.productId) continue
+                if (chunk.includes(String(vtexProduct.productId))) {
+                  productIdToProduct.set(String(vtexProduct.productId), vtexProduct)
                 }
               }
 
-              for (const sku of chunk) {
-                const vtexProduct = skuToProduct.get(sku)
+              for (const productId of chunk) {
+                const vtexProduct = productIdToProduct.get(productId)
                 if (!vtexProduct) continue
 
-                const transformed = transformToFastStoreProduct(vtexProduct, sku)
+                const transformed = transformToFastStoreProduct(vtexProduct)
                 if (transformed) {
-                  setCached(skuProductCache, sku, transformed, VTEX_CACHE_TTL_MS)
-                  fetchedProducts.set(sku, transformed)
+                  setCached(skuProductCache, productId, transformed, VTEX_CACHE_TTL_MS)
+                  fetchedProducts.set(productId, transformed)
                 }
               }
             } else {
@@ -387,8 +385,8 @@ export const vreinResolvers = {
         }
 
         const products: any[] = []
-        for (const sku of skus) {
-          const product = cachedProducts.get(sku) || fetchedProducts.get(sku)
+        for (const productId of productIds) {
+          const product = cachedProducts.get(productId) || fetchedProducts.get(productId)
           if (product) {
             products.push(product)
           }

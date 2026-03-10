@@ -132,7 +132,7 @@ export const VreinCarousel = ({
 
   // Mostrar mensaje si no hay productos
   if (!loading && items.length === 0) {
-    console.warn('[VreinCarousel] No products to display', { sectionId })
+    console.warn('[VreinCarousel] No products to display', { sectionId, carouselId: id, apiUrl: data?.apiUrl || '' })
 
     const isDebug = typeof window !== 'undefined' && (
       (window as any).VREIN_DEBUG === true ||
@@ -148,6 +148,7 @@ export const VreinCarousel = ({
             <p style={{ fontSize: '0.875rem', color: '#999' }}>
               Verifica que la seccion exista en la API de Vrein y que los SKUs retornados existan en VTEX.
             </p>
+            <p>Esta es la url que se esta consultando a Vrein: <a href={data?.apiUrl} target="_blank" rel="noopener noreferrer">{data?.apiUrl}</a></p>
           </div>
         </section>
       )

@@ -21,8 +21,9 @@ interface VreinContextData {
 }
 
 /**
- * Detecta el tipo de página desde la URL, no desde el sectionId.
+ * Detecta el tipo de página desde la URL.
  * Para search vs searchnoresult (ambas en /s), delega en detectSearchState().
+ * Si se provee pageTypeOverride, se usa ese valor directamente.
  */
 function detectPageType(): PageType {
   if (typeof window === 'undefined') return 'home'
@@ -30,23 +31,21 @@ function detectPageType(): PageType {
   const pathname = window.location.pathname
   const params = new URLSearchParams(window.location.search)
 
-  // PDP: product pages end with /p in FastStore
   if (pathname.endsWith('/p')) return 'product'
 
-  // Search page: /s con param q
   if (pathname === '/s' && params.has('q')) {
     return detectSearchState()
   }
 
-  // Home
   if (pathname === '/' || pathname === '') return 'home'
 
-  // Category/PLP (cualquier otro path)
   return 'category'
 }
 
 /**
  * Distingue search con resultados de searchnoresult.
+ * Esta función es poco confiable en el mount inicial — usar pageTypeOverride
+ * cuando el caller sabe con certeza el tipo (e.g. desde sectionId SR/SNR).
  */
 function detectSearchState(): 'search' | 'searchnoresult' {
   if (document.querySelector('[data-fs-product-listing-results-count]') !== null) {
@@ -136,10 +135,6 @@ function getUserData() {
   }
 }
 
-/**
- * Busca el productId en el dataLayer para la página actual.
- * Verifica que el view_item corresponda a la URL actual (por slug en el pathname).
- */
 function getProductId(): string {
   if (typeof window === 'undefined') return ''
 
@@ -194,10 +189,6 @@ function getCategoryId(): string {
   return ''
 }
 
-/**
- * Tiempo máximo (ms) que esperamos a que el dataLayer tenga el evento
- * correspondiente a la página actual antes de construir el contexto de todos modos.
- */
 const DATA_READY_TIMEOUT_MS = 3000
 const DATA_READY_POLL_INTERVAL_MS = 150
 
@@ -207,47 +198,27 @@ const dbg = (...args: any[]) => {
   }
 }
 
-/**
- * Verifica si los datos del dataLayer/localStorage ya reflejan la página actual.
- * Retorna true cuando los datos están "listos" para construir el parámetro u.
- */
 function isDataReadyForCurrentPage(pageType: PageType): boolean {
   if (typeof window === 'undefined') return true
 
   switch (pageType) {
     case 'product': {
-      // En PDP necesitamos que el dataLayer tenga un view_item.
-      // Verificamos que exista un view_item cuyo item tenga un URL/slug
-      // que coincida con el pathname actual.
-      const pathname = window.location.pathname
-      // Extraer slug del pathname: /mi-producto/p -> mi-producto
-      const slug = pathname.replace(/\/p$/, '').split('/').filter(Boolean).pop() || ''
-
       const dataLayer = (window as any).dataLayer
       if (!Array.isArray(dataLayer)) return false
 
       for (let i = dataLayer.length - 1; i >= 0; i--) {
         const entry = dataLayer[i]
         if (entry?.event === 'view_item' && entry?.ecommerce?.items?.[0]) {
-          // Verificar que este view_item corresponda a la página actual
           const item = entry.ecommerce.items[0]
-          // FastStore pone el slug/link en item_id o en la URL del item
-          // Si hay un item con datos, consideramos que es el actual
-          // (FastStore emite view_item una sola vez por carga de PDP)
           if (item.item_id || item.item_variant) {
             return true
           }
         }
       }
-
-      // Fallback: si bdw_last_sku ya se actualizó en esta sesión
-      // (braindw-tracking.js lo escribe al procesar view_item)
       return false
     }
 
     case 'category': {
-      // Para categoría, verificar que bdw_last_category esté actualizado
-      // o que haya un view_item_list en el dataLayer
       const dataLayer = (window as any).dataLayer
       if (Array.isArray(dataLayer)) {
         for (let i = dataLayer.length - 1; i >= 0; i--) {
@@ -257,36 +228,50 @@ function isDataReadyForCurrentPage(pageType: PageType): boolean {
           }
         }
       }
-      // Si no hay view_item_list, igual podemos proceder con los datos
-      // que tengamos en localStorage — la categoría se puede resolver
-      // desde la URL en el resolver
       return true
     }
 
     case 'search':
-    case 'searchnoresult': {
-      // El término de búsqueda viene de la URL (?q=...), siempre disponible
-      return true
-    }
-
+    case 'searchnoresult':
     case 'home':
     default:
-      // Home no depende de datos específicos de la página
-      return true
+      return isGuidReady()
   }
 }
 
-export function useVreinContext(sectionId: string): string {
+/**
+ * Verifica si el GUID de sesión ya está disponible.
+ * En fresh browsers, el tracking script tarda ~300ms en obtenerlo de GetGuid.
+ */
+function isGuidReady(): boolean {
+  try {
+    // Opción 1: signal explícito del tracking script via localStorage (más rápido)
+    if (localStorage.getItem('bdw_session_ready') === '1') {
+      return true
+    }
+    // Opción 2: verificar directamente las cookies
+    const match = document.cookie.match(/(?:^|;\s*)bdw_session=([^;]+)/)
+    return match !== null && match[1].length > 0
+  } catch {
+    return false
+  }
+}
+}
+
+/**
+ * @param sectionId - ID de la sección del carrusel
+ * @param pageTypeOverride - Fuerza el pageType. Usar para SR/SNR donde ambas
+ *   secciones están en la misma URL /s y detectPageType no puede distinguirlas.
+ *   Pasar 'search' para secciones SR, 'searchnoresult' para SNR.
+ */
+export function useVreinContext(sectionId: string, pageTypeOverride?: PageType): string {
   const pathname = usePathname()
   const [context, setContext] = useState<string>(() => {
     if (typeof window === 'undefined') return 'home//'
-    // Intentar construir inmediatamente si los datos ya están listos
-    const pageType = detectPageType()
+    const pageType = pageTypeOverride ?? detectPageType()
     if (isDataReadyForCurrentPage(pageType)) {
-      return buildContext(sectionId)
+      return buildContext(sectionId, pageTypeOverride)
     }
-    // Si no están listos, retornar string vacío para que useVreinRecommendations
-    // no dispare la query prematuramente
     return ''
   })
 
@@ -294,19 +279,16 @@ export function useVreinContext(sectionId: string): string {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    // Limpiar timers anteriores
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
     if (intervalRef.current) clearInterval(intervalRef.current)
 
-    const pageType = detectPageType()
+    const pageType = pageTypeOverride ?? detectPageType()
 
-    // Si los datos ya están listos, construir contexto inmediatamente
     if (isDataReadyForCurrentPage(pageType)) {
-      setContext(buildContext(sectionId))
+      setContext(buildContext(sectionId, pageTypeOverride))
       return
     }
 
-    // Si no están listos, hacer polling hasta que lo estén o se agote el timeout
     dbg('[VreinContext] Waiting for page data to be ready...', { pageType, pathname })
 
     let resolved = false
@@ -317,16 +299,15 @@ export function useVreinContext(sectionId: string): string {
         if (intervalRef.current) clearInterval(intervalRef.current)
         if (timeoutRef.current) clearTimeout(timeoutRef.current)
         dbg('[VreinContext] Data ready, building context')
-        setContext(buildContext(sectionId))
+        setContext(buildContext(sectionId, pageTypeOverride))
       }
     }, DATA_READY_POLL_INTERVAL_MS)
 
-    // Timeout: construir con lo que tengamos después de DATA_READY_TIMEOUT_MS
     timeoutRef.current = setTimeout(() => {
       if (!resolved) {
         if (intervalRef.current) clearInterval(intervalRef.current)
         dbg('[VreinContext] Timeout reached, building context with available data')
-        setContext(buildContext(sectionId))
+        setContext(buildContext(sectionId, pageTypeOverride))
       }
     }, DATA_READY_TIMEOUT_MS)
 
@@ -334,15 +315,15 @@ export function useVreinContext(sectionId: string): string {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [sectionId, pathname])
+  }, [sectionId, pathname, pageTypeOverride])
 
   return context
 }
 
-function buildContext(sectionId: string): string {
+function buildContext(sectionId: string, pageTypeOverride?: PageType): string {
   if (typeof window === 'undefined') return 'home//'
 
-  const pageType = detectPageType()
+  const pageType = pageTypeOverride ?? detectPageType()
   const userData = getUserData()
 
   const contextData: VreinContextData = {
