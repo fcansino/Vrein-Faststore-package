@@ -1,6 +1,6 @@
 {
   "name": "@vreinai/faststore-components",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Vrein components for FastStore: product carousels, image banners, and GraphQL resolvers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -29,11 +29,13 @@
   },
   "files": [
     "dist",
-    "cms"
+    "cms",
+    "scripts"
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "postinstall": "node scripts/postinstall.js"
   },
   "peerDependencies": {
     "@faststore/ui": ">=3.0.0",
