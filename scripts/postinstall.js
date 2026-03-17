@@ -23,15 +23,20 @@ let content = fs.readFileSync(cliFile, 'utf8')
 let changed = false
 
 // Patch 1: Add /api to ALLOWED_PREFIX_PAGES
-const p1_original = "const ALLOWED_PREFIX_PAGES = ['/account']"
-const p1_patched  = "const ALLOWED_PREFIX_PAGES = ['/account', '/api']"
+const p1_variants = [
+  { original: "const ALLOWED_PREFIX_PAGES = ['/account']",     patched: "const ALLOWED_PREFIX_PAGES = ['/account', '/api']" },
+  { original: "const ALLOWED_PREFIX_PAGES = ['/pvt/account']", patched: "const ALLOWED_PREFIX_PAGES = ['/pvt/account', '/api']" },
+]
 
-if (content.includes(p1_original)) {
-  content = content.replace(p1_original, p1_patched)
+const p1_alreadyPatched = p1_variants.some(v => content.includes(v.patched))
+const p1_match = p1_variants.find(v => content.includes(v.original))
+
+if (p1_alreadyPatched) {
+  console.log('[vrein-patch] [1/3] Already patched.')
+} else if (p1_match) {
+  content = content.replace(p1_match.original, p1_match.patched)
   console.log('[vrein-patch] [1/3] Patched ALLOWED_PREFIX_PAGES to include /api')
   changed = true
-} else if (content.includes(p1_patched)) {
-  console.log('[vrein-patch] [1/3] Already patched.')
 } else {
   console.log('[vrein-patch] [1/3] Pattern not found — skipping.')
 }

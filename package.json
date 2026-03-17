@@ -1,6 +1,6 @@
 {
   "name": "@vreinai/faststore-components",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Vrein components for FastStore: product carousels, image banners, and GraphQL resolvers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
