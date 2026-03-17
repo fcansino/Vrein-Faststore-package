@@ -8,44 +8,34 @@ import {
 } from '@faststore/ui'
 
 import { VreinCarouselProps } from './VreinCarousel.types'
-import { useVreinRecommendations, useVreinMetrics, useVreinContext, useInViewport } from './hooks'
+import { useVreinRecommendations, useVreinMetrics, useVreinContext, useInViewport, useIsMobile } from './hooks'
 import { getShelfTitleTag } from './clientConfig'
 import { VreinProductItem } from './VreinProductItem'
 import { vreinToProductSummary } from './vreinToProductSummary'
 
 /**
- * Determina si un sectionId pertenece a la categoría de search-result o search-no-result.
- * Solo relevante cuando el usuario está en /s?q=... — en otras páginas siempre renderiza.
- *
- * Lógica:
- *   - sectionId contiene -SNR- o SEARCHNORESULT → carousel de "sin resultados"
- *   - sectionId contiene -SR- o -SEARCH- (sin NORESULT) → carousel de "con resultados"
- *   - cualquier otro → sin restricción, siempre visible
- *
- * La detección del estado real de la página usa [data-fs-product-listing-results-count],
- * el mismo atributo que usa detectSearchState() en useVreinContext.
+ * Determina si debe renderizarse según la página y el tipo de sección.
+ * Solo actúa en /s?q=... para secciones SR/SNR.
+ * Usa detección DOM como fallback cuando no se provee hasSearchResults desde el framework.
  */
-function checkShouldRenderOnPage(sectionId: string): boolean {
+function checkShouldRenderByDOM(sectionId: string): boolean {
   if (typeof window === 'undefined') return true
 
   const pathname = window.location.pathname
   const params = new URLSearchParams(window.location.search)
 
-  // Solo filtrar en la página de búsqueda
   if (pathname !== '/s' || !params.has('q')) return true
 
   const upper = sectionId.toUpperCase()
   const isSnr = upper.includes('-SNR-') || upper.includes('SEARCHNORESULT')
   const isSr = upper.includes('-SR-') || (upper.includes('-SEARCH-') && !isSnr)
 
-  // Carrusel no específico de search → siempre visible
   if (!isSnr && !isSr) return true
 
-  // Señal DOM nativa de FastStore: presente solo cuando hay resultados
   const hasResults = document.querySelector('[data-fs-product-listing-results-count]') !== null
 
-  if (isSnr) return !hasResults  // SNR: solo cuando NO hay resultados
-  if (isSr)  return hasResults   // SR: solo cuando HAY resultados
+  if (isSnr) return !hasResults
+  if (isSr)  return hasResults
 
   return true
 }
@@ -53,26 +43,49 @@ function checkShouldRenderOnPage(sectionId: string): boolean {
 export const VreinCarousel = ({
   sectionId,
   productCardOverride,
+  cartId,
+  hasSearchResults,
+  pageTypeOverride,
 }: VreinCarouselProps) => {
   const itemsPerPage = 5
 
-  // Guard de página: en /s solo renderiza SR cuando hay resultados, SNR cuando no hay
-  // Starts true para evitar mismatch de hidratación SSR; se corrige en useEffect
-  const [isPageMatch, setIsPageMatch] = useState(true)
+  // Clasificación estática del tipo de sección
+  const upper = sectionId.toUpperCase()
+  const isSnrSection = upper.includes('-SNR-') || upper.includes('SEARCHNORESULT')
+  const isSrSection = upper.includes('-SR-') || (upper.includes('-SEARCH-') && !isSnrSection)
+
+  const [isOnSearchPage] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.location.pathname === '/s' && new URLSearchParams(window.location.search).has('q')
+  })
+
+  const needsSearchCheck = isOnSearchPage && (isSnrSection || isSrSection)
+
+  // shouldRender: true=mostrar, false=ocultar, null=esperando datos
+  const shouldRender = useMemo(() => {
+    if (!needsSearchCheck) return true
+
+    // Si el framework pasó hasSearchResults, úsarlo con prioridad
+    if (hasSearchResults !== undefined) {
+      if (hasSearchResults === null) return null // cargando
+      if (isSnrSection) return !hasSearchResults
+      if (isSrSection)  return hasSearchResults
+      return true
+    }
+
+    // Fallback: detección DOM
+    return checkShouldRenderByDOM(sectionId)
+  }, [needsSearchCheck, hasSearchResults, isSnrSection, isSrSection, sectionId])
+
+  // DOM fallback: cuando no viene hasSearchResults, observar cambios en el DOM
+  const [domPageMatch, setDomPageMatch] = useState(true)
   useEffect(() => {
-    setIsPageMatch(checkShouldRenderOnPage(sectionId))
+    if (!needsSearchCheck || hasSearchResults !== undefined) return
 
-    const pathname = window.location.pathname
-    const params = new URLSearchParams(window.location.search)
-    if (pathname !== '/s' || !params.has('q')) return
-
-    const upper = sectionId.toUpperCase()
-    const isSnr = upper.includes('-SNR-') || upper.includes('SEARCHNORESULT')
-    const isSr = upper.includes('-SR-') || (upper.includes('-SEARCH-') && !isSnr)
-    if (!isSnr && !isSr) return
+    setDomPageMatch(checkShouldRenderByDOM(sectionId))
 
     const observer = new MutationObserver(() => {
-      setIsPageMatch(checkShouldRenderOnPage(sectionId))
+      setDomPageMatch(checkShouldRenderByDOM(sectionId))
     })
     observer.observe(document.body, { childList: true, subtree: true, attributes: true })
 
@@ -82,16 +95,17 @@ export const VreinCarousel = ({
       observer.disconnect()
       clearTimeout(timeout)
     }
-  }, [sectionId])
+  }, [sectionId, needsSearchCheck, hasSearchResults])
 
-  const context = useVreinContext(sectionId)
+  const finalShouldRender = hasSearchResults !== undefined ? shouldRender : domPageMatch
+
+  const context = useVreinContext(sectionId, pageTypeOverride)
 
   const id = `vrein-carousel-${sectionId}`
   const viewedOnce = useRef(false)
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+  const isMobile = useIsMobile()
   const { ref: sectionRef, isVisible } = useInViewport(0.5)
 
-  // Debug hover state
   const [isHovered, setIsHovered] = useState(false)
 
   const { data, loading } = useVreinRecommendations({
@@ -99,7 +113,7 @@ export const VreinCarousel = ({
     context,
   })
 
-  const { trackCarouselRender, trackCarouselClick } = useVreinMetrics()
+  const { trackCarouselRender, trackCarouselClick } = useVreinMetrics({ cartId })
 
   const items = data?.products || []
   const title = data?.title || 'Productos Recomendados'
@@ -110,7 +124,6 @@ export const VreinCarousel = ({
     return items.map((item) => vreinToProductSummary(item))
   }, [items, productCardOverride])
 
-  // Tracking de render del carrusel — solo cuando >50% visible en viewport
   useEffect(() => {
     if (!viewedOnce.current && isVisible && items.length && data) {
       trackCarouselRender(id, {
@@ -127,19 +140,16 @@ export const VreinCarousel = ({
     }
   }, [isVisible, items.length, data, sectionId, id, trackCarouselRender])
 
-  // Guard de página: no renderizar si la página no coincide con el tipo de carrusel
-  if (!isPageMatch) return null
+  if (finalShouldRender === null || finalShouldRender === false) return null
 
-  // Mostrar mensaje si no hay productos
+  const isDebug = typeof window !== 'undefined' && (
+    (window as any).VREIN_DEBUG === true ||
+    new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
+  )
+
   if (!loading && items.length === 0) {
-    console.warn('[VreinCarousel] No products to display', { sectionId, carouselId: id, apiUrl: data?.apiUrl || '' })
-
-    const isDebug = typeof window !== 'undefined' && (
-      (window as any).VREIN_DEBUG === true ||
-      new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
-    )
-
     if (isDebug) {
+      console.warn('[VreinCarousel] No products to display', { sectionId, carouselId: id, apiUrl: data?.apiUrl || '' })
       return (
         <section className="section-product-shelf layout__section section">
           <div style={{ padding: 'var(--fs-spacing-6)', border: '2px dashed orange', borderRadius: '8px', textAlign: 'center' }}>
@@ -148,12 +158,11 @@ export const VreinCarousel = ({
             <p style={{ fontSize: '0.875rem', color: '#999' }}>
               Verifica que la seccion exista en la API de Vrein y que los SKUs retornados existan en VTEX.
             </p>
-            <p>Esta es la url que se esta consultando a Vrein: <a href={data?.apiUrl} target="_blank" rel="noopener noreferrer">{data?.apiUrl}</a></p>
+            <p style={{ overflow: 'auto' }}>API URL: <a href={data?.apiUrl} target="_blank" rel="noopener noreferrer">{data?.apiUrl}</a></p>
           </div>
         </section>
       )
     }
-
     return null
   }
 
@@ -179,19 +188,9 @@ export const VreinCarousel = ({
                     <Skeleton size={{ width: '100%', height: '100%' }} />
                   </div>
                   <div data-fs-product-card-skeleton-content>
-                    <Skeleton
-                      data-fs-product-card-skeleton-text
-                      size={{ width: '90%', height: '1.5rem' }}
-                    />
-                    <Skeleton
-                      data-fs-product-card-skeleton-text
-                      size={{ width: '70%', height: '1.5rem' }}
-                    />
-                    <Skeleton
-                      data-fs-product-card-skeleton-badge
-                      size={{ width: '6rem', height: '2rem' }}
-                      border="pill"
-                    />
+                    <Skeleton data-fs-product-card-skeleton-text size={{ width: '90%', height: '1.5rem' }} />
+                    <Skeleton data-fs-product-card-skeleton-text size={{ width: '70%', height: '1.5rem' }} />
+                    <Skeleton data-fs-product-card-skeleton-badge size={{ width: '6rem', height: '2rem' }} border="pill" />
                   </div>
                 </div>
               </ProductShelfItem>
@@ -202,11 +201,6 @@ export const VreinCarousel = ({
     )
   }
 
-  const isDebug = typeof window !== 'undefined' && (
-    (window as any).VREIN_DEBUG === true ||
-    new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
-  )
-
   return (
     <section
       ref={sectionRef}
@@ -216,7 +210,7 @@ export const VreinCarousel = ({
       onMouseLeave={() => setIsHovered(false)}
       style={isDebug ? {
         position: 'relative',
-        ...(isHovered ? { outline: `2px solid #6529a1`, outlineOffset: '-2px' } : {}),
+        ...(isHovered ? { outline: '2px solid #6529a1', outlineOffset: '-2px' } : {}),
       } : undefined}
     >
       {isDebug && isHovered && (

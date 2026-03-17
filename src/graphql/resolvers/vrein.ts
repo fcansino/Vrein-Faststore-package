@@ -137,6 +137,11 @@ function transformToFastStoreProduct(vtexProduct: any, targetSkuId?: string) {
         (item: any) => String(item.itemId) === String(targetSkuId)
       )
       if (match) targetItem = match
+    } else {
+      const inStockItem = vtexProduct.items.find(
+        (item: any) => (item.sellers?.[0]?.commertialOffer?.AvailableQuantity || 0) > 0
+      )
+      if (inStockItem) targetItem = inStockItem
     }
 
     const seller = targetItem.sellers?.[0]
@@ -176,6 +181,7 @@ function transformToFastStoreProduct(vtexProduct: any, targetSkuId?: string) {
               offer.AvailableQuantity > 0
                 ? 'https://schema.org/InStock'
                 : 'https://schema.org/OutOfStock',
+            installments: Array.isArray(offer.Installments) ? offer.Installments : [],
           },
         ],
       },
@@ -388,11 +394,14 @@ export const vreinResolvers = {
         for (const productId of productIds) {
           const product = cachedProducts.get(productId) || fetchedProducts.get(productId)
           if (product) {
-            products.push(product)
+            const availability = product.offers?.offers?.[0]?.availability
+            if (availability === 'https://schema.org/InStock') {
+              products.push(product)
+            }
           }
         }
 
-        console.log('[Vrein Resolver] Successfully fetched', products.length, 'products')
+        console.log('[Vrein Resolver] Successfully fetched', products.length, 'in-stock products')
 
         return {
           products,

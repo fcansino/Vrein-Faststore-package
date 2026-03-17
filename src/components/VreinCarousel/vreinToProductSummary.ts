@@ -43,6 +43,7 @@ export function vreinToProductSummary(item: VreinProduct) {
           priceWithTaxes: firstOffer?.price ?? 0,
           quantity: 1,
           seller: { identifier: '1' },
+          installments: firstOffer?.installments ?? [],
         },
       ],
     },

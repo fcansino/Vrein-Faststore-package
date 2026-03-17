@@ -7,10 +7,21 @@ export interface VreinImage {
   alternateName: string
 }
 
+export interface VreinInstallment {
+  Value: number
+  InterestRate: number
+  TotalValuePlusInterestRate: number
+  NumberOfInstallments: number
+  PaymentSystemName: string
+  PaymentSystemGroupName: string
+  Name: string
+}
+
 export interface VreinOffer {
   price: number
   listPrice: number
   availability: string
+  installments: VreinInstallment[]
 }
 
 export interface VreinOffers {

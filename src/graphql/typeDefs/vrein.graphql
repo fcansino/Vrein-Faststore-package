@@ -24,10 +24,21 @@ type VreinOffers {
   offers: [VreinOffer!]!
 }
 
+type VreinInstallment {
+  Value: Float!
+  InterestRate: Float!
+  TotalValuePlusInterestRate: Float!
+  NumberOfInstallments: Int!
+  PaymentSystemName: String!
+  PaymentSystemGroupName: String!
+  Name: String!
+}
+
 type VreinOffer {
   price: Float!
   listPrice: Float!
   availability: String!
+  installments: [VreinInstallment!]!
 }
 
 type VreinProductGroup {

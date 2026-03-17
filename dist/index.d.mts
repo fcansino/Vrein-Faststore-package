@@ -1,6 +1,7 @@
 import * as react_jsx_runtime from 'react/jsx-runtime';
 export { createVreinApiHandler, createVreinRouteHandlers, vreinResolvers, vreinTypeDefs } from './graphql.mjs';
 
+type PageType$1 = 'home' | 'product' | 'category' | 'search' | 'searchnoresult';
 type VreinCarouselProps = {
     /** ID de la sección específica de Vrein (ej: BDW-HOME-Carrusel-1) */
     sectionId: string;
@@ -9,9 +10,30 @@ type VreinCarouselProps = {
         Component: React.ComponentType<any>;
         props?: Record<string, any>;
     } | null;
+    /**
+     * ID del carrito actual (desde useCart del framework).
+     * Se usa en métricas y se persiste en localStorage para el script de tracking.
+     * Si no se provee, el hook genera un ID de sesión como fallback.
+     */
+    cartId?: string;
+    /**
+     * Resultado de la búsqueda en página /s (para secciones SR/SNR).
+     * - true  → hay resultados → mostrar sección SR, ocultar SNR
+     * - false → sin resultados → mostrar sección SNR, ocultar SR
+     * - null  → cargando (aún no hay datos) → ocultar ambas hasta saber
+     * - undefined → no aplica (no es página de búsqueda)
+     * Si se provee, tiene prioridad sobre la detección DOM interna.
+     */
+    hasSearchResults?: boolean | null;
+    /**
+     * Fuerza el pageType para la construcción del contexto de Vrein.
+     * Útil en páginas /s donde el sectionId indica si es SR o SNR pero el
+     * componente no puede determinarlo desde la URL sola.
+     */
+    pageTypeOverride?: PageType$1;
 };
 
-declare const VreinCarousel: ({ sectionId, productCardOverride, }: VreinCarouselProps) => react_jsx_runtime.JSX.Element | null;
+declare const VreinCarousel: ({ sectionId, productCardOverride, cartId, hasSearchResults, pageTypeOverride, }: VreinCarouselProps) => react_jsx_runtime.JSX.Element | null;
 
 interface VreinImageBannerProps {
     sectionId: string;
@@ -22,6 +44,8 @@ interface VreinImageBannerProps {
     autoplay?: boolean;
     showLazyLoading?: boolean;
     lazyLoadingHeight?: number;
+    /** ID del carrito actual (desde useCart del framework). Se usa en métricas. */
+    cartId?: string;
 }
 interface VreinBannerImage$1 {
     title: string;
@@ -45,7 +69,7 @@ interface VreinImageBannerData {
     smartCountdown: VreinSmartCountdown$1 | null;
 }
 
-declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadingHeight, }: VreinImageBannerProps) => react_jsx_runtime.JSX.Element | null;
+declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadingHeight, cartId, }: VreinImageBannerProps) => react_jsx_runtime.JSX.Element | null;
 
 interface VreinBrand {
     name: string;
@@ -54,10 +78,20 @@ interface VreinImage {
     url: string;
     alternateName: string;
 }
+interface VreinInstallment {
+    Value: number;
+    InterestRate: number;
+    TotalValuePlusInterestRate: number;
+    NumberOfInstallments: number;
+    PaymentSystemName: string;
+    PaymentSystemGroupName: string;
+    Name: string;
+}
 interface VreinOffer {
     price: number;
     listPrice: number;
     availability: string;
+    installments: VreinInstallment[];
 }
 interface VreinOffers {
     offers: VreinOffer[];
@@ -159,7 +193,9 @@ declare function useVreinImages({ sectionId, categoryId, whitelabel, }: UseVrein
     error: string | null;
 };
 
-declare function useVreinMetrics(): {
+declare function useVreinMetrics({ cartId }?: {
+    cartId?: string;
+}): {
     trackCarouselRender: (carouselId: string, data: {
         sectionId: string;
         totalItems: number;
@@ -175,12 +211,19 @@ declare function useVreinMetrics(): {
         productId: string;
         productName: string;
         position: number;
+        title?: string;
+        endpoint?: string;
     }) => void;
-    trackABTestVariation: (testId: string, data: {
-        variation: string;
-        componentName: string;
+    trackBannerRender: (data: {
+        sectionId: string;
+        totalImages: number;
+        hasCountdown?: boolean;
     }) => void;
-    trackCustomMetric: (eventName: string, data: Record<string, any>) => void;
+    trackBannerClick: (data: {
+        sectionId: string;
+        imageUrl?: string;
+        link?: string;
+    }) => void;
 };
 declare global {
     interface Window {
@@ -196,6 +239,19 @@ type PageType = 'home' | 'product' | 'category' | 'search' | 'searchnoresult';
  *   Pasar 'search' para secciones SR, 'searchnoresult' para SNR.
  */
 declare function useVreinContext(sectionId: string, pageTypeOverride?: PageType): string;
+
+/**
+ * Hook que observa si un elemento está al menos `threshold` visible en el viewport.
+ * Usa callback ref para capturar el nodo correctamente incluso si monta después de
+ * un estado de carga (evita el problema de useRef + useEffect donde ref.current es null).
+ * Se desconecta automáticamente al primer disparo (triggerOnce).
+ */
+declare function useInViewport(threshold?: number): {
+    ref: (node: HTMLElement | null) => void;
+    isVisible: boolean;
+};
+
+declare function useIsMobile(breakpoint?: number): boolean;
 
 declare function vreinToProductSummary(item: VreinProduct): {
     id: string;
@@ -227,6 +283,7 @@ declare function vreinToProductSummary(item: VreinProduct): {
             seller: {
                 identifier: string;
             };
+            installments: VreinInstallment[];
         }[];
     };
     additionalProperty: Array<{
@@ -284,4 +341,4 @@ declare function disableVreinDebug(): void;
  */
 declare function setVreinApiEndpoint(endpoint: string): void;
 
-export { VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, setVreinApiEndpoint, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
+export { type PageType$1 as PageType, VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, setVreinApiEndpoint, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };

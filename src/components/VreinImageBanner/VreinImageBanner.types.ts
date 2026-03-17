@@ -7,6 +7,8 @@ export interface VreinImageBannerProps {
   autoplay?: boolean
   showLazyLoading?: boolean
   lazyLoadingHeight?: number
+  /** ID del carrito actual (desde useCart del framework). Se usa en métricas. */
+  cartId?: string
 }
 
 export interface VreinBannerImage {

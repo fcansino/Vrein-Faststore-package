@@ -5,23 +5,8 @@ import { Carousel, Skeleton } from '@faststore/ui'
 
 import type { VreinImageBannerProps } from './VreinImageBanner.types'
 import { useVreinImages } from './hooks/useVreinImages'
-import { useVreinMetrics } from '../VreinCarousel/hooks/useVreinMetrics'
-import { useInViewport } from '../VreinCarousel/hooks/useInViewport'
+import { useVreinMetrics, useInViewport, useIsMobile } from '../VreinCarousel/hooks'
 import { Countdown } from './Countdown'
-
-function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false
-  )
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= breakpoint)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [breakpoint])
-
-  return isMobile
-}
 
 const POSITION_STYLES: Record<string, React.CSSProperties> = {
   '1.1': { top: '0%', left: '0%', transform: 'translate(0%, 0%)' },
@@ -40,6 +25,7 @@ export const VreinImageBanner = ({
   height = 420,
   showLazyLoading = false,
   lazyLoadingHeight = 400,
+  cartId,
 }: VreinImageBannerProps) => {
   const id = `vrein-banner-${sectionId}`
   const viewedOnce = useRef(false)
@@ -53,24 +39,24 @@ export const VreinImageBanner = ({
   )
 
   const { data, loading } = useVreinImages({ sectionId })
-  const { trackCustomMetric } = useVreinMetrics()
+  const { trackBannerRender, trackBannerClick: trackBannerClickMetric } = useVreinMetrics({ cartId })
 
   const images = data?.images || []
   const countdown = data?.smartCountdown
 
   useEffect(() => {
     if (!viewedOnce.current && isVisible && images.length > 0) {
-      trackCustomMetric('banner_render', {
+      trackBannerRender({
         sectionId,
         totalImages: images.length,
         hasCountdown: !!countdown?.enabled,
       })
       viewedOnce.current = true
     }
-  }, [isVisible, images.length, countdown, sectionId, trackCustomMetric])
+  }, [isVisible, images.length, countdown, sectionId, trackBannerRender])
 
   const handleBannerClick = (imageUrl: string, link: string) => {
-    trackCustomMetric('banner_click', {
+    trackBannerClickMetric({
       sectionId,
       imageUrl,
       link,

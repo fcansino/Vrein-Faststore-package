@@ -4,7 +4,7 @@ export { VreinImageBanner } from './components/VreinImageBanner/VreinImageBanner
 export { VreinProductItem } from './components/VreinCarousel/VreinProductItem'
 
 // Types (for consumers)
-export type { VreinCarouselProps } from './components/VreinCarousel/VreinCarousel.types'
+export type { VreinCarouselProps, PageType } from './components/VreinCarousel/VreinCarousel.types'
 export type { VreinImageBannerProps, VreinImageBannerData, VreinBannerImage as VreinBannerImageType, VreinSmartCountdown as VreinSmartCountdownType } from './components/VreinImageBanner/VreinImageBanner.types'
 export type { VreinProduct, VreinProductConnection, VreinImageBannerConnection, VreinFullProduct } from './types/vrein'
 
@@ -14,6 +14,8 @@ export type { VreinRecommendationsParams } from './components/VreinCarousel/hook
 export { useVreinImages } from './components/VreinImageBanner/hooks/useVreinImages'
 export { useVreinMetrics } from './components/VreinCarousel/hooks/useVreinMetrics'
 export { useVreinContext } from './components/VreinCarousel/hooks/useVreinContext'
+export { useInViewport } from './components/VreinCarousel/hooks/useInViewport'
+export { useIsMobile } from './components/VreinCarousel/hooks/useIsMobile'
 
 // Utilities
 export { vreinToProductSummary } from './components/VreinCarousel/vreinToProductSummary'

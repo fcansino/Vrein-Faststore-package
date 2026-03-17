@@ -38,3 +38,4 @@ yarn-error.log*
 /.faststore
 .vscode/
 lighthouserc.js
+.claude

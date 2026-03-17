@@ -1,7 +1,22 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+
+/**
+ * Hook interno: retorna el pathname actual y se re-renderiza en cambios de ruta SPA.
+ * Reemplaza usePathname() de next/navigation para evitar depender de Next.js en el package.
+ */
+function useCurrentPathname(): string {
+  const [pathname, setPathname] = useState(
+    () => typeof window !== 'undefined' ? window.location.pathname : '/'
+  )
+  useEffect(() => {
+    const handleChange = () => setPathname(window.location.pathname)
+    window.addEventListener('popstate', handleChange)
+    return () => window.removeEventListener('popstate', handleChange)
+  }, [])
+  return pathname
+}
 
 type PageType = 'home' | 'product' | 'category' | 'search' | 'searchnoresult'
 
@@ -264,7 +279,7 @@ function isGuidReady(): boolean {
  *   Pasar 'search' para secciones SR, 'searchnoresult' para SNR.
  */
 export function useVreinContext(sectionId: string, pageTypeOverride?: PageType): string {
-  const pathname = usePathname()
+  const pathname = useCurrentPathname()
   const [context, setContext] = useState<string>(() => {
     if (typeof window === 'undefined') return 'home//'
     const pageType = pageTypeOverride ?? detectPageType()
