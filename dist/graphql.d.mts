@@ -27,10 +27,22 @@ declare const vreinResolvers: {
             slug: string;
             name: string;
             description: string;
-            brand: string;
+            brand: {
+                name: string;
+                id: string;
+                imageUrl: string;
+            };
             categories: any;
             categoryIds: string;
             categoryNames: any;
+            offers: {
+                offers: {
+                    price: number;
+                    listPrice: number;
+                    availability: string;
+                    installments: any;
+                }[];
+            };
             price: number;
             listPrice: number;
             availability: string;
