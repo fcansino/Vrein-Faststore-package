@@ -73,6 +73,8 @@ declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadi
 
 interface VreinBrand {
     name: string;
+    id: string;
+    imageUrl: string;
 }
 interface VreinImage {
     url: string;
@@ -262,7 +264,8 @@ declare function vreinToProductSummary(item: VreinProduct): {
     unitMultiplier: number | null;
     brand: {
         name: string;
-        brandName: string;
+        id: string;
+        imageUrl: string;
     };
     isVariantOf: {
         productGroupID: string;
