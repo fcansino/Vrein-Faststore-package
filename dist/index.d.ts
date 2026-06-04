@@ -1,8 +1,37 @@
 import * as react_jsx_runtime from 'react/jsx-runtime';
-export { createVreinApiHandler, createVreinRouteHandlers, vreinResolvers, vreinTypeDefs } from './graphql.js';
+export { vreinResolvers, vreinTypeDefs } from './graphql.js';
+
+/**
+ * QueryExecutor — matches the signature of FastStore's src/sdk/graphql/useQuery exactly.
+ *
+ * T = response data type
+ * V = variables type
+ *
+ * The return shape mirrors SWR: data is undefined while loading (not null),
+ * and isValidating is used instead of loading.
+ * Component hooks map isValidating → loading and data !== undefined → data.
+ */
+interface QueryExecutor {
+    <T, V = Record<string, unknown>>(query: {
+        __meta__: {
+            operationName: string;
+            storeName?: string;
+        };
+    }, variables: V, options?: {
+        doNotRun?: boolean;
+    }): {
+        data: T | undefined;
+        isValidating: boolean;
+        error?: unknown;
+    };
+}
 
 type PageType$1 = 'home' | 'product' | 'category' | 'search' | 'searchnoresult';
 type VreinCarouselProps = {
+    /** Injected FastStore useQuery executor (dependency injection for persisted-query path) */
+    useQueryFn: QueryExecutor;
+    /** Injected query document from @generated/graphql (VreinProductsQueryDocument) */
+    vreinProductsDocument: unknown;
     /** ID de la sección específica de Vrein (ej: BDW-HOME-Carrusel-1) */
     sectionId: string;
     /** Optional ProductCard override config from the consumer project */
@@ -33,9 +62,13 @@ type VreinCarouselProps = {
     pageTypeOverride?: PageType$1;
 };
 
-declare const VreinCarousel: ({ sectionId, productCardOverride, cartId, hasSearchResults, pageTypeOverride, }: VreinCarouselProps) => react_jsx_runtime.JSX.Element | null;
+declare const VreinCarousel: ({ sectionId, productCardOverride, cartId, hasSearchResults, pageTypeOverride, useQueryFn, vreinProductsDocument, }: VreinCarouselProps) => react_jsx_runtime.JSX.Element | null;
 
 interface VreinImageBannerProps {
+    /** Injected FastStore useQuery executor (dependency injection for persisted-query path) */
+    useQueryFn: QueryExecutor;
+    /** Injected query document from @generated/graphql (VreinImagesQueryDocument) */
+    vreinImagesDocument: unknown;
     sectionId: string;
     pageContext?: string;
     height?: number;
@@ -69,7 +102,7 @@ interface VreinImageBannerData {
     smartCountdown: VreinSmartCountdown$1 | null;
 }
 
-declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadingHeight, cartId, }: VreinImageBannerProps) => react_jsx_runtime.JSX.Element | null;
+declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadingHeight, cartId, useQueryFn, vreinImagesDocument, }: VreinImageBannerProps) => react_jsx_runtime.JSX.Element | null;
 
 interface VreinBrand {
     name: string;
@@ -178,7 +211,7 @@ interface VreinRecommendationsParams {
     sectionId: string;
     context?: string;
 }
-declare function useVreinRecommendations({ sectionId, context, }: VreinRecommendationsParams): {
+declare function useVreinRecommendations(useQueryFn: QueryExecutor, queryDocument: unknown, { sectionId, context }: VreinRecommendationsParams): {
     data: VreinRecommendationsData | null;
     loading: boolean;
     error: string | null;
@@ -189,7 +222,7 @@ interface UseVreinImagesParams {
     categoryId?: string;
     whitelabel?: string;
 }
-declare function useVreinImages({ sectionId, categoryId, whitelabel, }: UseVreinImagesParams): {
+declare function useVreinImages(useQueryFn: QueryExecutor, queryDocument: unknown, { sectionId, categoryId, whitelabel, }: UseVreinImagesParams): {
     data: VreinImageBannerData | null;
     loading: boolean;
     error: string | null;
@@ -336,12 +369,4 @@ declare const VREIN_ENV: {
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
 
-/**
- * Override the default Vrein API endpoint.
- * Call this once at app startup if you mount the handler at a different path.
- *
- * @example setVreinApiEndpoint('/api/custom-vrein')
- */
-declare function setVreinApiEndpoint(endpoint: string): void;
-
-export { type PageType$1 as PageType, VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, setVreinApiEndpoint, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
+export { type PageType$1 as PageType, type QueryExecutor, VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
