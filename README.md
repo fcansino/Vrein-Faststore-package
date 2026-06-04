@@ -151,6 +151,64 @@ vrein_debug_off()  // Desactiva
 
 ---
 
+---
+
+## Migration: v0.1.x → v0.2.0
+
+### Breaking changes
+
+- `useVreinRecommendations` — signature changed: `(useQueryFn, queryDocument, params)`. The hook no longer fetches internally.
+- `useVreinImages` — same change.
+- Components `VreinCarousel` and `VreinImageBanner` now require `useQueryFn` and `vreinProductsDocument`/`vreinImagesDocument` props.
+- `/api/vrein` route no longer exists. Requests flow through `/api/graphql` via FastStore's persisted-query path.
+- Package entry points `@vreinai/faststore-components/sdk` and the old handler export are removed.
+- `postinstall` script (CLI patcher) removed from the package. Run a clean `yarn install` after upgrading.
+
+### Migration steps
+
+1. **Upgrade package:**
+   ```bash
+   yarn add @vreinai/faststore-components@^0.2.0
+   ```
+
+2. **Run the scaffolder** (generates query files and updated wrappers):
+   ```bash
+   npx @vreinai/faststore-components setup
+   ```
+   Or if installed locally:
+   ```bash
+   yarn vrein-setup
+   ```
+
+3. **Review generated files** — confirm `VreinCarousel.tsx` and `VreinImageBanner.tsx` look correct.
+
+4. **Build** to generate persisted-documents.json with Vrein query hashes:
+   ```bash
+   yarn build
+   ```
+
+5. **Verify** `persisted-documents.json` contains entries for:
+   `vreinProducts`, `vreinImages`, `vreinProductData`, `vreinCategoryId`
+
+6. **Sync CMS section schemas** (if sections.json was updated by scaffolder):
+   ```bash
+   yarn cms-sync
+   ```
+
+7. **Delete stale API route** if it exists (scaffolder will warn about it):
+   ```
+   src/customizations/src/pages/api/vrein.ts
+   ```
+
+8. **Clean reinstall** to remove the old CLI patch from node_modules:
+   ```bash
+   rm -rf node_modules && yarn install
+   ```
+
+9. **Verify runtime**: network tab should show `GET /api/graphql?operationName=vreinProducts` — zero requests to `/api/vrein`.
+
+---
+
 ## Licencia
 
 UNLICENSED — uso interno Vrein AI / BrainDW.

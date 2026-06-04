@@ -21,7 +21,6 @@ export default defineConfig([
       /^next\/.*/,
       '@faststore/ui',
       /^@faststore\/.*/,
-      'swr',
     ],
     esbuildOptions(options) {
       options.jsx = 'automatic'

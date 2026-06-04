@@ -1,6 +1,6 @@
 {
   "name": "@vreinai/faststore-components",
-  "version": "0.1.15",
+  "version": "0.2.0",
   "description": "Vrein components for FastStore: product carousels, image banners, and GraphQL resolvers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -27,29 +27,29 @@
       ]
     }
   },
+  "bin": {
+    "vrein-setup": "bin/setup.js"
+  },
   "files": [
     "dist",
     "cms",
-    "scripts"
+    "bin",
+    "templates"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "postinstall": "node scripts/postinstall.js"
+    "build": "tsup"
   },
   "peerDependencies": {
     "@faststore/ui": ">=3.0.0",
     "next": ">=13.0.0",
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "swr": ">=2.0.0"
+    "react-dom": ">=18.0.0"
   },
   "devDependencies": {
     "@faststore/ui": "^3.0.0",
     "@types/node": "^25.3.2",
     "@types/react": "^18.0.0",
     "sass": "^1.70.0",
-    "swr": "^2.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   },
