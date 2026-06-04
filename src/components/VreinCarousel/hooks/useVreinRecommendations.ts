@@ -1,9 +1,6 @@
 import { useMemo } from 'react'
 import type { VreinProduct, VreinProductConnection } from '../../../types/vrein'
-import { useQuery } from '../../../sdk/useQuery'
-import { VREIN_PRODUCTS_QUERY } from '../../../graphql/queries'
-
-const FETCH_OPTIONS = { method: 'POST' } as const
+import type { QueryExecutor } from '../../../sdk/types'
 
 interface VreinRecommendationsData {
   products: VreinProduct[]
@@ -21,10 +18,11 @@ export interface VreinRecommendationsParams {
   context?: string
 }
 
-export function useVreinRecommendations({
-  sectionId,
-  context,
-}: VreinRecommendationsParams): {
+export function useVreinRecommendations(
+  useQueryFn: QueryExecutor,
+  queryDocument: unknown,
+  { sectionId, context }: VreinRecommendationsParams
+): {
   data: VreinRecommendationsData | null
   loading: boolean
   error: string | null
@@ -34,10 +32,10 @@ export function useVreinRecommendations({
     [sectionId, context]
   )
 
-  const { data, error } = useQuery<VreinProductsQueryResponse>(
-    VREIN_PRODUCTS_QUERY,
+  const { data, isValidating, error } = useQueryFn<VreinProductsQueryResponse>(
+    queryDocument as { __meta__: { operationName: string } },
     variables,
-    { doNotRun: !sectionId || !context, fetchOptions: FETCH_OPTIONS }
+    { doNotRun: !sectionId || !context }
   )
 
   return {
@@ -49,7 +47,7 @@ export function useVreinRecommendations({
           apiUrl: data.vreinProducts.apiUrl ?? '',
         }
       : null,
-    loading: !data && !error,
+    loading: isValidating || (!data && !error),
     error: error ? String(error) : null,
   }
 }

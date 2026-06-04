@@ -3,10 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { VreinImageBannerConnection } from '../../../types/vrein'
 import type { VreinImageBannerData } from '../VreinImageBanner.types'
-import { useQuery } from '../../../sdk/useQuery'
-import { VREIN_IMAGES_QUERY } from '../../../graphql/queries'
-
-const FETCH_OPTIONS = { method: 'POST' } as const
+import type { QueryExecutor } from '../../../sdk/types'
 
 interface UseVreinImagesParams {
   sectionId: string
@@ -43,15 +40,23 @@ function detectCategoryId(): string {
   return localStorage.getItem('bdw_last_category') || ''
 }
 
-export function useVreinImages({
-  sectionId,
-  categoryId,
-  whitelabel,
-}: UseVreinImagesParams) {
+export function useVreinImages(
+  useQueryFn: QueryExecutor,
+  queryDocument: unknown,
+  {
+    sectionId,
+    categoryId,
+    whitelabel,
+  }: UseVreinImagesParams
+) {
   const [clientVars, setClientVars] = useState<ClientVars | null>(null)
 
   useEffect(() => {
-    const vreinHash = process.env.NEXT_PUBLIC_VREIN_HASH
+    const vreinHash =
+      typeof window !== 'undefined'
+        ? (window as any).__VREIN_CONFIG?.hash || process.env.NEXT_PUBLIC_VREIN_HASH
+        : process.env.NEXT_PUBLIC_VREIN_HASH
+
     if (!vreinHash) {
       console.log('[VreinImages] No VREIN_HASH configured, skipping')
       setClientVars({ email: '', sessionGuid: '', resolvedCategoryId: '' })
@@ -93,10 +98,10 @@ export function useVreinImages({
     }
   }, [sectionId, clientVars, whitelabel])
 
-  const { data, error } = useQuery<VreinImagesQueryResponse>(
-    VREIN_IMAGES_QUERY,
+  const { data, isValidating, error } = useQueryFn<VreinImagesQueryResponse>(
+    queryDocument as { __meta__: { operationName: string } },
     variables ?? { sectionId, email: '', categoryId: '', whitelabel: '', sessionGuid: '' },
-    { doNotRun: !variables, fetchOptions: FETCH_OPTIONS }
+    { doNotRun: !variables }
   )
 
   return {
@@ -106,7 +111,7 @@ export function useVreinImages({
           smartCountdown: data.vreinImages.smartCountdown || null,
         } as VreinImageBannerData)
       : null,
-    loading: !data && !error && !!variables,
+    loading: (isValidating || (!data && !error)) && !!variables,
     error: error ? String(error) : null,
   }
 }
