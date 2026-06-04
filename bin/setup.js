@@ -51,6 +51,11 @@ const files = [
     label: 'Vrein useQuery adapter (isolated FastStore import)',
   },
   {
+    src: path.join(templatesDir, 'graphql', 'vrein.graphql.tpl'),
+    dest: path.join(cwd, 'src', 'graphql', 'thirdParty', 'typeDefs', 'vrein.graphql'),
+    label: 'Vrein GraphQL type definitions (SDL — must include VreinInstallment)',
+  },
+  {
     src: path.join(templatesDir, 'resolvers', 'vrein.ts.tpl'),
     dest: path.join(cwd, 'src', 'graphql', 'thirdParty', 'resolvers', 'vrein.ts'),
     label: 'Vrein resolver re-export (registers in FastStore thirdParty)',

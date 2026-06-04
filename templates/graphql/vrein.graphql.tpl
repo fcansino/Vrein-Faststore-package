@@ -1,0 +1,107 @@
+type VreinProduct {
+  id: String!
+  sku: String!
+  slug: String!
+  name: String!
+  brand: VreinBrand!
+  categories: String
+  categoryIds: String
+  image: [VreinImage!]!
+  offers: VreinOffers!
+  isVariantOf: VreinProductGroup!
+}
+
+type VreinBrand {
+  name: String!
+}
+
+type VreinImage {
+  url: String!
+  alternateName: String!
+}
+
+type VreinOffers {
+  offers: [VreinOffer!]!
+}
+
+type VreinInstallment {
+  Value: Float!
+  InterestRate: Float!
+  TotalValuePlusInterestRate: Float!
+  NumberOfInstallments: Int!
+  PaymentSystemName: String!
+  PaymentSystemGroupName: String!
+  Name: String!
+}
+
+type VreinOffer {
+  price: Float!
+  listPrice: Float!
+  availability: String!
+  installments: [VreinInstallment!]!
+}
+
+type VreinProductGroup {
+  productGroupID: String!
+  name: String!
+}
+
+type VreinProductConnection {
+  products: [VreinProduct!]!
+  totalCount: Int!
+  title: String!
+  endpointName: String!
+  apiUrl: String!
+}
+
+type VreinFullProduct {
+  id: String!
+  sku: String!
+  slug: String!
+  name: String!
+  description: String
+  brand: String!
+  categories: String
+  categoryIds: String
+  categoryNames: String
+  price: Float!
+  listPrice: Float!
+  availability: String!
+  image: String!
+  url: String!
+}
+
+type VreinBannerImage {
+  title: String
+  image: String!
+  mobileImage: String
+  link: String
+}
+
+type VreinSmartCountdown {
+  dateStart: String
+  dateEnd: String!
+  fontSizeDesktop: Int
+  fontSizeMobile: Int
+  positionDesktop: String
+  positionMobile: String
+  fontColor: String
+  enabled: Boolean!
+  timeZoneOffset: Int
+}
+
+type VreinImageBannerConnection {
+  images: [VreinBannerImage!]!
+  smartCountdown: VreinSmartCountdown
+}
+
+type VreinCategoryResult {
+  categoryId: String!
+}
+
+extend type Query {
+  vreinProducts(sectionId: String!, context: String): VreinProductConnection!
+  vreinProductData(productId: String, skuId: String): VreinFullProduct
+  vreinImages(sectionId: String!, email: String, categoryId: String, whitelabel: String, sessionGuid: String): VreinImageBannerConnection!
+  vreinCategoryId(pathname: String!): VreinCategoryResult!
+}
