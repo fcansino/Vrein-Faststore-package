@@ -8,6 +8,9 @@ export type { VreinCarouselProps, PageType } from './components/VreinCarousel/Vr
 export type { VreinImageBannerProps, VreinImageBannerData, VreinBannerImage as VreinBannerImageType, VreinSmartCountdown as VreinSmartCountdownType } from './components/VreinImageBanner/VreinImageBanner.types'
 export type { VreinProduct, VreinProductConnection, VreinImageBannerConnection, VreinFullProduct } from './types/vrein'
 
+// SDK types (for type-safe adapter wiring)
+export type { QueryExecutor } from './sdk/types'
+
 // Hooks (for advanced consumers)
 export { useVreinRecommendations } from './components/VreinCarousel/hooks/useVreinRecommendations'
 export type { VreinRecommendationsParams } from './components/VreinCarousel/hooks/useVreinRecommendations'
@@ -27,9 +30,3 @@ export { VREIN_CONFIG, VREIN_ENV, getVreinConfig, enableVreinDebug, disableVrein
 // GraphQL (for registering in the consumer project)
 export { vreinResolvers } from './graphql/resolvers/vrein'
 export { vreinTypeDefs } from './graphql/typeDefs'
-
-// API Route handlers (mount at /api/vrein or custom path)
-export { createVreinApiHandler, createVreinRouteHandlers } from './graphql/handler'
-
-// SDK config
-export { setVreinApiEndpoint } from './sdk/request'
