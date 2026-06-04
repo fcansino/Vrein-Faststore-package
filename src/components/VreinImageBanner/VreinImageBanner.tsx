@@ -26,6 +26,8 @@ export const VreinImageBanner = ({
   showLazyLoading = false,
   lazyLoadingHeight = 400,
   cartId,
+  useQueryFn,
+  vreinImagesDocument,
 }: VreinImageBannerProps) => {
   const id = `vrein-banner-${sectionId}`
   const viewedOnce = useRef(false)
@@ -38,7 +40,7 @@ export const VreinImageBanner = ({
     new URLSearchParams(window.location.search).get('vrein_debug') === 'true'
   )
 
-  const { data, loading } = useVreinImages({ sectionId })
+  const { data, loading } = useVreinImages(useQueryFn, vreinImagesDocument, { sectionId })
   const { trackBannerRender, trackBannerClick: trackBannerClickMetric } = useVreinMetrics({ cartId })
 
   const images = data?.images || []

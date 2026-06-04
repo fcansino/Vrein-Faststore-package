@@ -1,4 +1,10 @@
+import type { QueryExecutor } from '../../sdk/types'
+
 export interface VreinImageBannerProps {
+  /** Injected FastStore useQuery executor (dependency injection for persisted-query path) */
+  useQueryFn: QueryExecutor
+  /** Injected query document from @generated/graphql (VreinImagesQueryDocument) */
+  vreinImagesDocument: unknown
   sectionId: string
   pageContext?: string
   height?: number

@@ -1,6 +1,12 @@
+import type { QueryExecutor } from '../../sdk/types'
+
 export type PageType = 'home' | 'product' | 'category' | 'search' | 'searchnoresult'
 
 export type VreinCarouselProps = {
+  /** Injected FastStore useQuery executor (dependency injection for persisted-query path) */
+  useQueryFn: QueryExecutor
+  /** Injected query document from @generated/graphql (VreinProductsQueryDocument) */
+  vreinProductsDocument: unknown
   /** ID de la sección específica de Vrein (ej: BDW-HOME-Carrusel-1) */
   sectionId: string
   /** Optional ProductCard override config from the consumer project */

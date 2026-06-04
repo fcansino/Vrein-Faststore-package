@@ -46,6 +46,8 @@ export const VreinCarousel = ({
   cartId,
   hasSearchResults,
   pageTypeOverride,
+  useQueryFn,
+  vreinProductsDocument,
 }: VreinCarouselProps) => {
   const itemsPerPage = 5
 
@@ -108,10 +110,11 @@ export const VreinCarousel = ({
 
   const [isHovered, setIsHovered] = useState(false)
 
-  const { data, loading } = useVreinRecommendations({
-    sectionId,
-    context,
-  })
+  const { data, loading } = useVreinRecommendations(
+    useQueryFn,
+    vreinProductsDocument,
+    { sectionId, context }
+  )
 
   const { trackCarouselRender, trackCarouselClick } = useVreinMetrics({ cartId })
 
