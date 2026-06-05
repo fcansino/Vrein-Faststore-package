@@ -14,12 +14,27 @@
  * loading are buffered and flushed once it is ready.
  */
 
-import { useAnalyticsEvent } from '@faststore/sdk'
 import { useEffect, useRef } from 'react'
 
 const VREIN_SCRIPT_ID = '__vrein_bdw_script__'
 
 export type VreinDataLayerEvent = Record<string, unknown>
+
+export interface VreinAnalyticsEvent {
+  name: string
+  params: unknown
+}
+
+/**
+ * Signature of FastStore's useAnalyticsEvent hook (@faststore/sdk).
+ * The hook is injected by the client wrapper instead of imported here:
+ * @faststore/sdk is ESM-only (no "main"/"exports" fields), so requiring it
+ * from this package's CJS dist crashes Next's externalized server bundles
+ * with "Cannot find module '@faststore/sdk'".
+ */
+export type UseAnalyticsEventFn = (
+  handler: (event: VreinAnalyticsEvent) => void
+) => void
 
 declare global {
   interface Window {
@@ -28,11 +43,21 @@ declare global {
   }
 }
 
-export interface VreinTrackingProps {}
+export interface VreinTrackingProps {
+  /** FastStore's useAnalyticsEvent hook, injected by the client wrapper. */
+  useAnalyticsEventFn?: UseAnalyticsEventFn
+}
 
-export function VreinTracking(_props: VreinTrackingProps) {
+// Stable no-op hook used when no analytics hook is injected.
+// NOTE: the injected hook must be provided consistently across renders
+// (always or never) to respect the Rules of Hooks.
+const noopUseAnalyticsEvent: UseAnalyticsEventFn = () => {}
+
+export function VreinTracking({ useAnalyticsEventFn }: VreinTrackingProps) {
   const vreinHash = process.env.NEXT_PUBLIC_VREIN_HASH ?? ''
   const buffer = useRef<VreinDataLayerEvent[]>([])
+
+  const useAnalyticsEvent = useAnalyticsEventFn ?? noopUseAnalyticsEvent
 
   useAnalyticsEvent((event) => {
     const payload: VreinDataLayerEvent = {

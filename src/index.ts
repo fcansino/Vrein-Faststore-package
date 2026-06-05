@@ -5,7 +5,12 @@ export { VreinTracking } from './components/VreinTracking/VreinTracking'
 export { VreinProductItem } from './components/VreinCarousel/VreinProductItem'
 
 // Types (for consumers)
-export type { VreinTrackingProps, VreinDataLayerEvent } from './components/VreinTracking/VreinTracking'
+export type {
+  VreinTrackingProps,
+  VreinDataLayerEvent,
+  VreinAnalyticsEvent,
+  UseAnalyticsEventFn,
+} from './components/VreinTracking/VreinTracking'
 export type { VreinCarouselProps, PageType } from './components/VreinCarousel/VreinCarousel.types'
 export type { VreinImageBannerProps, VreinImageBannerData, VreinBannerImage as VreinBannerImageType, VreinSmartCountdown as VreinSmartCountdownType } from './components/VreinImageBanner/VreinImageBanner.types'
 export type { VreinProduct, VreinProductConnection, VreinImageBannerConnection, VreinFullProduct } from './types/vrein'

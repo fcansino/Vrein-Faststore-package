@@ -6,11 +6,28 @@
  *
  * Sección CMS que carga el script de tracking BrainDW/Vrein desde el CDN.
  * Colocar en el Global Section del CMS para que cargue en todas las páginas.
- * Toda la lógica (carga del script, captura de eventos via useAnalyticsEvent,
- * buffer y forwarding a __VREIN_PROCESS_EVENT) vive en el paquete NPM.
+ * Toda la lógica (carga del script, buffer y forwarding a __VREIN_PROCESS_EVENT)
+ * vive en el paquete NPM.
+ *
+ * useAnalyticsEvent is injected from here (client code, compiled by webpack)
+ * because @faststore/sdk is ESM-only and cannot be required from the
+ * package's dist in Next's externalized server bundles.
  */
 
-import { VreinTracking } from '@vreinai/faststore-components'
+import { useAnalyticsEvent } from '@faststore/sdk'
+import {
+  VreinTracking as VreinTrackingBase,
+  type UseAnalyticsEventFn,
+  type VreinTrackingProps,
+} from '@vreinai/faststore-components'
 
-export { VreinTracking }
+export function VreinTracking(props: VreinTrackingProps) {
+  return (
+    <VreinTrackingBase
+      {...props}
+      useAnalyticsEventFn={useAnalyticsEvent as UseAnalyticsEventFn}
+    />
+  )
+}
+
 export default VreinTracking

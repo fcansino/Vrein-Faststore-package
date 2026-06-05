@@ -105,6 +105,18 @@ interface VreinImageBannerData {
 declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadingHeight, cartId, useQueryFn, vreinImagesDocument, }: VreinImageBannerProps) => react_jsx_runtime.JSX.Element | null;
 
 type VreinDataLayerEvent = Record<string, unknown>;
+interface VreinAnalyticsEvent {
+    name: string;
+    params: unknown;
+}
+/**
+ * Signature of FastStore's useAnalyticsEvent hook (@faststore/sdk).
+ * The hook is injected by the client wrapper instead of imported here:
+ * @faststore/sdk is ESM-only (no "main"/"exports" fields), so requiring it
+ * from this package's CJS dist crashes Next's externalized server bundles
+ * with "Cannot find module '@faststore/sdk'".
+ */
+type UseAnalyticsEventFn = (handler: (event: VreinAnalyticsEvent) => void) => void;
 declare global {
     interface Window {
         __VREIN_CONFIG?: {
@@ -114,8 +126,10 @@ declare global {
     }
 }
 interface VreinTrackingProps {
+    /** FastStore's useAnalyticsEvent hook, injected by the client wrapper. */
+    useAnalyticsEventFn?: UseAnalyticsEventFn;
 }
-declare function VreinTracking(_props: VreinTrackingProps): null;
+declare function VreinTracking({ useAnalyticsEventFn }: VreinTrackingProps): null;
 
 interface VreinBrand {
     name: string;
@@ -382,4 +396,4 @@ declare const VREIN_ENV: {
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
 
-export { type PageType$1 as PageType, type QueryExecutor, VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
+export { type PageType$1 as PageType, type QueryExecutor, type UseAnalyticsEventFn, VREIN_CONFIG, VREIN_ENV, type VreinAnalyticsEvent, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };

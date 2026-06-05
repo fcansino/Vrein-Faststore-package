@@ -28,6 +28,8 @@ yarn add @vreinai/faststore-components
 
 > Paquete: `@vreinai/faststore-components` (registry privado de Vrein AI). Si el cliente no tiene acceso al registry, solicitar el tarball `.tgz` al equipo Vrein e instalar con `yarn add file:./vreinai-faststore-components-x.y.z.tgz`.
 
+> **Versión mínima: `0.3.3`.** Las versiones `0.3.0` a `0.3.2` tienen un bug que rompe el servidor con `Cannot find module '@faststore/sdk'` (el componente de tracking importaba `@faststore/sdk` — ESM-only — desde el bundle raíz del paquete). No instalarlas.
+
 ## 3. Configurar variables de entorno
 
 En `vtex.env` (y en las env vars de Vercel si aplica):
