@@ -248,10 +248,3 @@ Si la tienda **no** tiene override de ProductCard, el carrusel usa `VreinProduct
 | Cards "genéricas" en vez de las del cliente | El override no expone `__experimentalProductCard` en `overrides/ProductShelf` |
 | Error de compilación SCSS | Falta `sass` en devDependencies del proyecto |
 | Existe `src/pages/api/vrein.ts` o postinstall `patch-faststore-cli` | Restos de v0.1.x — eliminar; desde v0.2.0 todo va por `/api/graphql` |
-
-## Referencias
-
-- Paquete: `@vreinai/faststore-components` — repo: `D:/Braindw/NPM/Vrein-Faststore-package`
-- Proyecto de referencia (implementación completa): `faststore-braindw` (account VTEX `brain`)
-- APIs Vrein: `s2.braindw.com` (sesión, captura, recomendaciones), `p2.vrein.ai` (persistencia), `abtest.braindw.com` (A/B testing)
-- Contacto para hashes y section IDs: equipo Vrein / BrainDW
