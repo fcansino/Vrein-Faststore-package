@@ -104,14 +104,14 @@ yarn build
 
 This triggers FastStore codegen which generates:
 - `@generated/graphql` types + query documents
-- `.faststore/persisted-documents.json` with operation hashes
+- `.faststore/@generated/persisted-documents.json` with operation hashes
 
 ### 6. Verify persisted-documents.json
 
-After the build, check that the 4 Vrein operations appear in `.faststore/persisted-documents.json`:
+After the build, check that the 4 Vrein operations appear in `.faststore/@generated/persisted-documents.json`:
 
 ```bash
-cat .faststore/persisted-documents.json | grep -E "vreinProducts|vreinImages|vreinProductData|vreinCategoryId"
+cat .faststore/@generated/persisted-documents.json | grep -E "VreinProductsQuery|VreinImagesQuery|VreinProductDataQuery|VreinCategoryIdQuery"
 ```
 
 Expected output (hashes may differ across projects):

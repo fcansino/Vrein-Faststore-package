@@ -40,3 +40,6 @@ yarn-error.log*
 lighthouserc.js
 .claude
 .atl
+*.tgz
+*.rar
+*.zip

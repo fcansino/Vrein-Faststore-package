@@ -41,7 +41,7 @@ No se requiere ninguna otra credencial: secret, branch office y URLs de API ya e
 
 ## 4. Copiar los archivos al proyecto (manual)
 
-La forma recomendada es copiar los archivos desde el **repositorio de referencia `Componente-Vrein-FastStore`**, que ya contiene todos los archivos listos para usar, validados en producción. Su estructura de directorios espeja exactamente la estructura destino en la tienda, e incluye además un ejemplo de override de ProductCard (ver sección 8.2).
+La forma recomendada es copiar los archivos desde el **repositorio de referencia `Componente-Vrein-FastStore`**, que ya contiene todos los archivos listos para usar, validados en producción. Su estructura de directorios espeja exactamente la estructura destino en la tienda, e incluye además un ejemplo de override de ProductCard (ver sección 9.2).
 
 ### 4.1 GraphQL
 
@@ -69,7 +69,7 @@ La forma recomendada es copiar los archivos desde el **repositorio de referencia
 
 Cada carpeta ya incluye `VreinXxx.tsx`, `VreinXxx.module.scss`, `index.ts` y `section.json`.
 
-Cada wrapper importa el componente base del paquete y le inyecta los hooks del proyecto cliente (`useCart`, `useQuery`, overrides, etc.). Son archivos **del cliente** — se pueden editar para ajustar rutas de imports si el proyecto tiene otra estructura (ver sección 8.4).
+Cada wrapper importa el componente base del paquete y le inyecta los hooks del proyecto cliente (`useCart`, `useQuery`, overrides, etc.). Son archivos **del cliente** — se pueden editar para ajustar rutas de imports si el proyecto tiene otra estructura (ver sección 9.4).
 
 ### 4.3 Scripts y typings
 
@@ -84,7 +84,36 @@ El archivo `cms/faststore/sections.json` del repo de referencia contiene las tre
 
 > **Alternativa**: los templates también existen dentro del paquete instalado, en `node_modules/@vreinai/faststore-components/templates/` y `node_modules/@vreinai/faststore-components/cms/`. En ese caso, copiar cada archivo quitando la extensión `.tpl` y crear manualmente los `index.ts` en cada carpeta de componente.
 
-## 5. Registrar los resolvers y los componentes
+## 5. Estilos de @faststore/ui (obligatorio)
+
+Los wrappers de Vrein **no importan** los `.module.scss` incluidos en las carpetas de los componentes, y el CSS de `@faststore/ui` (Carousel, ProductCard, etc.) solo se carga de forma scopeada en el `ProductShelf` nativo. Sin un import global de esos estilos, **los carruseles se renderizan como una lista vertical en lugar de un carrusel horizontal**.
+
+La solución validada en producción es importar el bloque de estilos de `@faststore/ui` al **final** de `src/themes/custom-theme.scss`, **fuera del bloque `.theme {}`**:
+
+```scss
+// ----------------------------------------------------------
+// VreinCarousel: estilos globales de @faststore/ui
+// Se importan fuera del bloque .theme para que apliquen
+// a los elementos renderizados por @vreinai/faststore-components
+// ----------------------------------------------------------
+@import "@faststore/ui/src/components/atoms/Badge/styles";
+@import "@faststore/ui/src/components/atoms/Button/styles";
+@import "@faststore/ui/src/components/atoms/Icon/styles";
+@import "@faststore/ui/src/components/atoms/Link/styles";
+@import "@faststore/ui/src/components/atoms/Price/styles";
+@import "@faststore/ui/src/components/atoms/Skeleton/styles";
+@import "@faststore/ui/src/components/molecules/Carousel/styles";
+@import "@faststore/ui/src/components/molecules/DiscountBadge/styles";
+@import "@faststore/ui/src/components/molecules/Rating/styles";
+@import "@faststore/ui/src/components/molecules/ProductCard/styles";
+@import "@faststore/ui/src/components/molecules/ProductCardSkeleton/styles";
+@import "@faststore/ui/src/components/molecules/ProductPrice/styles";
+@import "@faststore/ui/src/components/organisms/ProductShelf/styles";
+```
+
+> **Importante**: este import global es el mecanismo validado. Usar CSS Modules o `:global` para cargar estos estilos **no funciona de forma confiable**. El bloque debe ir al final del archivo, fuera de `.theme {}`.
+
+## 6. Registrar los resolvers y los componentes
 
 **a) Resolvers** — en `src/graphql/thirdParty/resolvers/index.ts`, agregar el spread:
 
@@ -116,33 +145,33 @@ const sections = {
 
 > Este paso es **manual** — el scaffolder no lo hace automáticamente.
 
-## 6. Build y sincronización con el CMS
+## 7. Build y sincronización con el CMS
 
 ```bash
 yarn build      # registra los persisted query hashes de Vrein
 yarn cms-sync   # sube los schemas de sección al Headless CMS
 ```
 
-Verificar que `.faststore/persisted-documents.json` contenga entradas para `vreinProducts`, `vreinImages`, `vreinProductData` y `vreinCategoryId`.
+Verificar que `.faststore/@generated/persisted-documents.json` contenga entradas para `VreinProductsQuery`, `VreinImagesQuery`, `VreinProductDataQuery` y `VreinCategoryIdQuery`.
 
-## 7. Configuración en el Headless CMS
+## 8. Configuración en el Headless CMS
 
 1. **Global Section**: agregar la sección `VreinTracking` (sin props). Esto activa el tracking en toda la tienda — sin este paso no se capturan eventos ni funcionan las recomendaciones personalizadas.
-2. **Páginas**: agregar `VreinCarousel` y/o `VreinImageBanner` donde corresponda, completando el `sectionId` acordado con el equipo de Vrein (ej: `HOME//Carrusel 1`, `PDP//Carrusel 2`).
+2. **Páginas**: agregar `VreinCarousel` y/o `VreinImageBanner` donde corresponda, completando el `sectionId` acordado con el equipo de Vrein (ej: `BDW-HOME-Carrusel-1`, `BDW-PDP-Carrusel-2`).
 
 > Opcional recomendado: editar las entradas Vrein de `cms/faststore/sections.json` para reemplazar el campo `sectionId` de texto libre por un `enum` con los IDs habilitados para la tienda, así el editor de CMS ve un dropdown y no puede tipear IDs inválidos. Pedir la lista de secciones al equipo Vrein.
 
 ---
 
-## 8. Adaptar a la customización existente de la tienda (importante)
+## 9. Adaptar a la customización existente de la tienda (importante)
 
 El carrusel de Vrein está diseñado para **heredar el look & feel de la tienda automáticamente**, en dos niveles:
 
-### 8.1 Theming (automático)
+### 9.1 Theming (automático)
 
 Los componentes usan los componentes de `@faststore/ui` (`ProductCard`, `Carousel`, etc.) y el sistema de variables `--fs-*`. Cualquier customización del tema en `custom-theme.scss` (colores, tipografía, bordes, espaciado) se aplica al carrusel sin configuración adicional.
 
-### 8.2 ProductCard customizado (detección automática del override)
+### 9.2 ProductCard customizado (detección automática del override)
 
 Si la tienda tiene un **override del ProductCard** — el patrón estándar de FastStore en `src/components/overrides/ProductShelf.tsx` — el carrusel de Vrein **lo detecta y lo usa automáticamente**, de modo que las cards de recomendaciones se ven idénticas a las del resto de la tienda.
 
@@ -150,7 +179,7 @@ Ejemplo de override típico del cliente:
 
 ```tsx
 // src/components/overrides/ProductShelf.tsx
-import { SectionOverride } from '@faststore/core'
+import type { SectionOverride } from 'src/typings/overrides'
 import MyCustomProductCard from '../MyCustomProductCard'
 
 const SECTION = 'ProductShelf' as const
@@ -185,34 +214,35 @@ Con eso el wrapper `VreinCarousel.tsx` resuelve el override vía `getSectionOver
 
 El producto llega convertido al formato `ProductSummary` estándar de FastStore (vía `vreinToProductSummary`), por lo que el card del cliente funciona sin cambios.
 
-### 8.3 Fallback sin override
+### 9.3 Fallback sin override
 
 Si la tienda **no** tiene override de ProductCard, el carrusel usa `VreinProductItem` (incluido en el paquete), construido con `ProductCard`/`ProductCardImage`/`ProductCardContent` de `@faststore/ui`.
 
-> ⚠️ El fallback formatea precios con locale `es-AR` / moneda `ARS`. Para tiendas con otra moneda/locale, definir un override de ProductCard (sección 8.2) — es la vía recomendada en cualquier caso.
+> ⚠️ El fallback formatea precios con locale `es-AR` / moneda `ARS`. Para tiendas con otra moneda/locale, definir un override de ProductCard (sección 9.2) — es la vía recomendada en cualquier caso.
 
-### 8.4 Otros puntos de adaptación
+### 9.4 Otros puntos de adaptación
 
 - **Rutas de imports del wrapper**: si el proyecto cliente movió `src/sdk/cart`, `src/sdk/graphql/useQuery` u overrides a otras rutas, ajustar los imports en los wrappers generados (`src/components/sections/Vrein*/`). Son archivos del cliente, editables.
 - **Estilos propios del carrusel**: los wrappers usan `.module.scss` propios; cualquier ajuste fino (gaps, flechas, badges) se hace ahí sin tocar el paquete.
 
 ---
 
-## 9. Verificación
+## 10. Verificación
 
 1. `yarn dev` y abrir la tienda.
 2. En la consola del navegador ejecutar `vrein_debug()` — habilita logs `[Vrein]`.
 3. Navegar a una PDP y verificar en Network:
    - `s2.braindw.com` → GetGuid y capturas de eventos
-   - `/api/graphql` → queries `vreinProducts` / `vreinImages` respondiendo con productos
+   - `/api/graphql` → queries `VreinProductsQuery` / `VreinImagesQuery` respondiendo con productos
 4. Verificar que los carruseles renderizan con el card de la tienda (si hay override).
 5. Desactivar logs con `vrein_debug_off()`.
 
-## 10. Troubleshooting rápido
+## 11. Troubleshooting rápido
 
 | Síntoma | Causa probable |
 |---|---|
 | Carrusel no renderiza nada | `sectionId` inválido o hash incorrecto en `NEXT_PUBLIC_VREIN_HASH` |
+| Productos en lista vertical en lugar de carrusel | Falta el bloque de imports de @faststore/ui en `custom-theme.scss` (fuera del bloque `.theme`) |
 | Error `PersistedQueryNotFound` | Falta `yarn build` después de copiar los archivos, o falta `vreinQueries.ts` (codegen no registró las queries) |
 | No se capturan eventos | `VreinTracking` no está en el Global Section del CMS |
 | Cards "genéricas" en vez de las del cliente | El override no expone `__experimentalProductCard` en `overrides/ProductShelf` |

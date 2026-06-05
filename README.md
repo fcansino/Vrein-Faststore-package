@@ -181,13 +181,13 @@ vrein_debug_off()  // Desactiva
 
 3. **Review generated files** — confirm `VreinCarousel.tsx` and `VreinImageBanner.tsx` look correct.
 
-4. **Build** to generate persisted-documents.json with Vrein query hashes:
+4. **Build** to generate `.faststore/@generated/persisted-documents.json` with Vrein query hashes:
    ```bash
    yarn build
    ```
 
-5. **Verify** `persisted-documents.json` contains entries for:
-   `vreinProducts`, `vreinImages`, `vreinProductData`, `vreinCategoryId`
+5. **Verify** `.faststore/@generated/persisted-documents.json` contains entries for:
+   `VreinProductsQuery`, `VreinImagesQuery`, `VreinProductDataQuery`, `VreinCategoryIdQuery`
 
 6. **Sync CMS section schemas** (if sections.json was updated by scaffolder):
    ```bash
