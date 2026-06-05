@@ -6,6 +6,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.0] - 2026-06-05
+
+### Added
+
+- **`VreinTracking` component** (CMS Global Section): loads the BrainDW/Vrein tracking script from the CDN (`s2.braindw.com/Script/braindw/{hash}`) so it can be updated without client redeploys. Captures FastStore analytics events directly via `useAnalyticsEvent` (`@faststore/sdk`) and forwards them to `window.__VREIN_PROCESS_EVENT` — no dependency on the client's `AnalyticsHandler` or `window.dataLayer`. Events fired before the script finishes loading are buffered and flushed once ready.
+- **`templates/components/VreinTracking.tsx.tpl`**: scaffolder wrapper for client projects
+- **`cms/vreinTrackingSection.json`**: CMS section schema (no configurable props)
+- Scaffolder (`bin/setup.js`) now generates the VreinTracking wrapper and merges the `VreinTracking` CMS section entry
+
+### Changed
+
+- Added `@faststore/sdk >=3.0.0` as peer dependency (required by `VreinTracking`; already present in any FastStore project)
+
+---
+
 ## [0.2.0] - 2026-06-04
 
 ### Added

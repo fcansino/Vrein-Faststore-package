@@ -1,0 +1,10 @@
+{
+  "name": "VreinTracking",
+  "requiredScopes": [],
+  "schema": {
+    "title": "Vrein Tracking Script",
+    "description": "Inyecta el script de tracking BrainDW/Vrein. Colocar en Global Section para que cargue en todas las páginas.",
+    "type": "object",
+    "properties": {}
+  }
+}

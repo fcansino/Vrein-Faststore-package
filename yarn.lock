@@ -141,6 +141,16 @@
     react-swipeable "^7.0.0"
     tabbable "^5.2.1"
 
+"@faststore/sdk@^3.0.0":
+  version "3.99.4"
+  resolved "https://registry.yarnpkg.com/@faststore/sdk/-/sdk-3.99.4.tgz#91fe08a8310fb8c2c6da81555ca0214f33286b79"
+  integrity sha512-Pcquf1J1M2DihAGmiGJs/F7cMRO9nSo+AMcPdbl3F8NV+BIp16HIW4n0gsNa+euu1Lj939zgJgsdUzCA0embgg==
+  dependencies:
+    "@types/react" "^18.2.42"
+    fast-deep-equal "^3.1.3"
+    idb-keyval "^5.1.3"
+    zustand "^5.0.5"
+
 "@faststore/ui@^3.0.0":
   version "3.97.1"
   resolved "https://registry.yarnpkg.com/@faststore/ui/-/ui-3.97.1.tgz#323f1de4c3dc592de98280f23a8bc10fa45076dd"
@@ -417,6 +427,14 @@
     "@types/prop-types" "*"
     csstype "^3.2.2"
 
+"@types/react@^18.2.42":
+  version "18.3.30"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.3.30.tgz#e915809a3fb2bf752361d356b821bc754697e3cd"
+  integrity sha512-3ek6mwJL5/VBewBcY4S66cqlCtK3qi4WIq37Z0m/NHw1hjhI7274Mx1qz/+ggSzyBCOEf7eHjBN6INjPAWYfYw==
+  dependencies:
+    "@types/prop-types" "*"
+    csstype "^3.2.2"
+
 acorn@^8.16.0:
   version "8.16.0"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.16.0.tgz#4ce79c89be40afe7afe8f3adb902a1f1ce9ac08a"
@@ -473,11 +491,6 @@ debug@^4.4.0:
   dependencies:
     ms "^2.1.3"
 
-dequal@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/dequal/-/dequal-2.0.3.tgz#2644214f1997d39ed0ee0ece72335490a7ac67be"
-  integrity sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==
-
 detect-libc@^2.0.3:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-2.1.2.tgz#689c5dcdc1900ef5583a4cb9f6d7b473742074ad"
@@ -515,6 +528,11 @@ esbuild@^0.27.0:
     "@esbuild/win32-ia32" "0.27.4"
     "@esbuild/win32-x64" "0.27.4"
 
+fast-deep-equal@^3.1.3:
+  version "3.1.3"
+  resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz#3a7d56b559d6cbc3eb512325244e619a65c6c525"
+  integrity sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==
+
 fdir@^6.5.0:
   version "6.5.0"
   resolved "https://registry.yarnpkg.com/fdir/-/fdir-6.5.0.tgz#ed2ab967a331ade62f18d077dae192684d50d350"
@@ -533,6 +551,13 @@ fsevents@~2.3.2:
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/fsevents/-/fsevents-2.3.3.tgz#cac6407785d03675a2a5e1a5305c697b347d90d6"
   integrity sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==
+
+idb-keyval@^5.1.3:
+  version "5.1.5"
+  resolved "https://registry.yarnpkg.com/idb-keyval/-/idb-keyval-5.1.5.tgz#be11174bac0cb756dba4cc86fb36b6cd63f5ce6d"
+  integrity sha512-J1utxYWQokYjy01LvDQ7WmiAtZCGUSkVi9EIBfUSyLOr/BesnMIxNGASTh9A1LzeISSjSqEPsfFdTss7EE7ofQ==
+  dependencies:
+    safari-14-idb-fix "^1.0.6"
 
 immutable@^5.1.5:
   version "5.1.5"
@@ -712,6 +737,11 @@ rollup@^4.34.8:
     "@rollup/rollup-win32-x64-msvc" "4.60.0"
     fsevents "~2.3.2"
 
+safari-14-idb-fix@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/safari-14-idb-fix/-/safari-14-idb-fix-1.0.6.tgz#cbaabc33a4500c44b5c432d6c525b0ed9b68bb65"
+  integrity sha512-oTEQOdMwRX+uCtWCKT1nx2gAeSdpr8elg/2gcaKUH00SJU2xWESfkx11nmXwTRHy7xfQoj1o4TTQvdmuBosTnA==
+
 sass@^1.70.0:
   version "1.98.0"
   resolved "https://registry.yarnpkg.com/sass/-/sass-1.98.0.tgz#924ce85a3745ccaccd976262fdc1bc0c13aa8e57"
@@ -745,14 +775,6 @@ sucrase@^3.35.0:
     pirates "^4.0.1"
     tinyglobby "^0.2.11"
     ts-interface-checker "^0.1.9"
-
-swr@^2.0.0:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/swr/-/swr-2.4.1.tgz#c9e48abff6bf4b04846342e2f1f6be108a078cf6"
-  integrity sha512-2CC6CiKQtEwaEeNiqWTAw9PGykW8SR5zZX8MZk6TeAvEAnVS7Visz8WzphqgtQ8v2xz/4Q5K+j+SeMaKXeeQIA==
-  dependencies:
-    dequal "^2.0.3"
-    use-sync-external-store "^1.6.0"
 
 tabbable@^5.2.1:
   version "5.3.3"
@@ -834,7 +856,7 @@ undici-types@~7.18.0:
   resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-7.18.2.tgz#29357a89e7b7ca4aef3bf0fd3fd0cd73884229e9"
   integrity sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==
 
-use-sync-external-store@^1.6.0:
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.6.0.tgz#b174bfa65cb2b526732d9f2ac0a408027876f32d"
-  integrity sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==
+zustand@^5.0.5:
+  version "5.0.14"
+  resolved "https://registry.yarnpkg.com/zustand/-/zustand-5.0.14.tgz#18216c24fcb980cf36898f9c57520e67b1f77855"
+  integrity sha512-/8tAspM5LMPr28b3fwLYrtdj77ECpfZviaP75CMTnwO8ISyaE4GDIG/9rDDYq/cH9D2Xw2A2RXglLInmVBQB/g==

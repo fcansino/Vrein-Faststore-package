@@ -84,8 +84,7 @@ src/
   components/sections/
     VreinCarousel/          ← copiar completo
     VreinImageBanner/       ← copiar completo
-  scripts/
-    ThirdPartyScripts.tsx   ← copiar
+    VreinTracking/          ← copiar completo (Global Section)
 ```
 
 Luego registrar en `src/components/index.tsx`:
@@ -93,22 +92,22 @@ Luego registrar en `src/components/index.tsx`:
 ```tsx
 import { VreinCarousel } from './sections/VreinCarousel'
 import { VreinImageBanner } from './sections/VreinImageBanner'
+import { VreinTracking } from './sections/VreinTracking'
 
-export default { VreinCarousel, VreinImageBanner }
+export default { VreinCarousel, VreinImageBanner, VreinTracking }
 ```
 
-### 4. ThirdPartyScripts
+### 4. VreinTracking (Global Section)
 
-El script de tracking inyecta el hash al cliente via `window.__VREIN_CONFIG`. Agregar en el layout raíz:
+El tracking se activa con la sección CMS `VreinTracking`. Colocarla en el **Global Section** del Headless CMS para que cargue en todas las páginas. El scaffolder genera el wrapper en `src/components/sections/VreinTracking/VreinTracking.tsx`.
 
-```tsx
-import ThirdPartyScripts from 'src/scripts/ThirdPartyScripts'
+Cómo funciona:
 
-// En el layout:
-<ThirdPartyScripts />
-```
+- Descarga el script de tracking desde el CDN (`s2.braindw.com/Script/braindw/{hash}`) — el script se actualiza del lado de Vrein sin redeploy del cliente.
+- Captura los eventos de analytics de FastStore con `useAnalyticsEvent` (`@faststore/sdk`) y los reenvía a `window.__VREIN_PROCESS_EVENT`. Los eventos disparados antes de que el script termine de cargar se bufferean y se procesan al estar listo.
+- Lee `process.env.NEXT_PUBLIC_VREIN_HASH` (Next.js lo inlinea en el bundle) y lo expone via `window.__VREIN_CONFIG`.
 
-Lee `process.env.NEXT_PUBLIC_VREIN_HASH` en el servidor y lo escribe en el HTML. Los componentes client-side lo leen desde `process.env.NEXT_PUBLIC_VREIN_HASH` directamente (Next.js lo inlinea en el bundle).
+Requiere `@faststore/sdk` como peer dependency (ya presente en cualquier proyecto FastStore).
 
 ### 5. Sincronizar schemas CMS
 

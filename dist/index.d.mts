@@ -104,6 +104,19 @@ interface VreinImageBannerData {
 
 declare const VreinImageBanner: ({ sectionId, height, showLazyLoading, lazyLoadingHeight, cartId, useQueryFn, vreinImagesDocument, }: VreinImageBannerProps) => react_jsx_runtime.JSX.Element | null;
 
+type VreinDataLayerEvent = Record<string, unknown>;
+declare global {
+    interface Window {
+        __VREIN_CONFIG?: {
+            hash: string;
+        };
+        __VREIN_PROCESS_EVENT?: (event: VreinDataLayerEvent) => void;
+    }
+}
+interface VreinTrackingProps {
+}
+declare function VreinTracking(_props: VreinTrackingProps): null;
+
 interface VreinBrand {
     name: string;
     id: string;
@@ -369,4 +382,4 @@ declare const VREIN_ENV: {
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
 
-export { type PageType$1 as PageType, type QueryExecutor, VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
+export { type PageType$1 as PageType, type QueryExecutor, VREIN_CONFIG, VREIN_ENV, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };

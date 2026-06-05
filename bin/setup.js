@@ -70,6 +70,11 @@ const files = [
     dest: path.join(cwd, 'src', 'components', 'sections', 'VreinImageBanner', 'VreinImageBanner.tsx'),
     label: 'VreinImageBanner wrapper component',
   },
+  {
+    src: path.join(templatesDir, 'components', 'VreinTracking.tsx.tpl'),
+    dest: path.join(cwd, 'src', 'components', 'sections', 'VreinTracking', 'VreinTracking.tsx'),
+    label: 'VreinTracking wrapper component (CMS Global Section)',
+  },
 ]
 
 // ─── stale files to warn about ───────────────────────────────────────────────
@@ -129,6 +134,18 @@ const vreinImageBannerSection = {
         default: 400,
       },
     },
+  },
+}
+
+const vreinTrackingSection = {
+  name: 'VreinTracking',
+  requiredScopes: [],
+  schema: {
+    title: 'Vrein Tracking Script',
+    description:
+      'Inyecta el script de tracking BrainDW/Vrein. Colocar en Global Section para que cargue en todas las páginas.',
+    type: 'object',
+    properties: {},
   },
 }
 
@@ -262,6 +279,14 @@ async function processCmsSections() {
     changed = true
   } else {
     log('SKIP', cmsSectionsPath, 'VreinImageBanner section already present')
+  }
+
+  if (!names.has('VreinTracking')) {
+    if (!isDryRun) sections.push(vreinTrackingSection)
+    log(isDryRun ? 'ADD-SECTION' : 'ADD-SECTION', cmsSectionsPath, 'VreinTracking entry')
+    changed = true
+  } else {
+    log('SKIP', cmsSectionsPath, 'VreinTracking section already present')
   }
 
   if (changed && !isDryRun) {
