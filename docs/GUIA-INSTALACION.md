@@ -9,6 +9,7 @@ Guía para implementadores que integran los componentes Vrein (`@vreinai/faststo
 | `VreinCarousel` | Carrusel de recomendaciones de producto |
 | `VreinImageBanner` | Banners de imagen con countdown inteligente |
 | `VreinTracking` | Script de tracking y captura de eventos (sección global del CMS) |
+| `VreinPopup` | Popup (modal) o slider lateral de recomendaciones (sección global del CMS) |
 
 ---
 
@@ -41,6 +42,13 @@ VTEX_ACCOUNT=<account VTEX de la tienda>
 
 No se requiere ninguna otra credencial: secret, branch office y URLs de API ya están resueltos dentro del paquete.
 
+Opcional, solo si se usa `VreinPopup`:
+
+```env
+# Host del endpoint de popup/slider — opcional, default: https://script-qa.vrein.ai
+NEXT_PUBLIC_VREIN_POPUP_URL=<host provisto por Vrein>
+```
+
 ## 4. Copiar los archivos al proyecto (manual)
 
 La forma recomendada es copiar los archivos desde el **repositorio de referencia `Componente-Vrein-FastStore`**, que ya contiene todos los archivos listos para usar, validados en producción. Su estructura de directorios espeja exactamente la estructura destino en la tienda, e incluye además un ejemplo de override de ProductCard (ver sección 9.2).
@@ -54,7 +62,7 @@ La forma recomendada es copiar los archivos desde el **repositorio de referencia
 | `src/graphql/vrein/vreinQueries.ts` | `src/graphql/vrein/vreinQueries.ts` |
 | `src/sdk/vreinQueryAdapter.ts` | `src/sdk/vreinQueryAdapter.ts` |
 
-- `vrein.graphql` — tipos y queries de Vrein (extiende `Query` con `vreinProducts`, `vreinImages`, `vreinProductData`, `vreinCategoryId`).
+- `vrein.graphql` — tipos y queries de Vrein (extiende `Query` con `vreinProducts`, `vreinImages`, `vreinProductData`, `vreinCategoryId`, `vreinPopup`).
 - `resolvers/vrein.ts` — re-export de los resolvers del paquete (no contiene lógica propia).
 - `vreinQueries.ts` — query documents que el codegen de FastStore escanea para generar los persisted queries. **Sin este archivo el build no registra las queries.**
 - `vreinQueryAdapter.ts` — adaptador del `useQuery` de FastStore que usan los componentes.
@@ -68,6 +76,7 @@ La forma recomendada es copiar los archivos desde el **repositorio de referencia
 | `src/components/sections/VreinCarousel/` (carpeta completa) | `src/components/sections/VreinCarousel/` |
 | `src/components/sections/VreinImageBanner/` (carpeta completa) | `src/components/sections/VreinImageBanner/` |
 | `src/components/sections/VreinTracking/` (carpeta completa) | `src/components/sections/VreinTracking/` |
+| `src/components/sections/VreinPopup/` (carpeta completa) | `src/components/sections/VreinPopup/` |
 
 Cada carpeta ya incluye `VreinXxx.tsx`, `VreinXxx.module.scss`, `index.ts` y `section.json`.
 
@@ -136,12 +145,14 @@ export default {
 import { VreinCarousel } from './sections/VreinCarousel'
 import { VreinImageBanner } from './sections/VreinImageBanner'
 import { VreinTracking } from './sections/VreinTracking'
+import { VreinPopup } from './sections/VreinPopup'
 
 const sections = {
   // ...secciones existentes del cliente
   VreinCarousel,
   VreinImageBanner,
   VreinTracking,
+  VreinPopup,
 }
 ```
 
@@ -154,12 +165,13 @@ yarn build      # registra los persisted query hashes de Vrein
 yarn cms-sync   # sube los schemas de sección al Headless CMS
 ```
 
-Verificar que `.faststore/@generated/persisted-documents.json` contenga entradas para `VreinProductsQuery`, `VreinImagesQuery`, `VreinProductDataQuery` y `VreinCategoryIdQuery`.
+Verificar que `.faststore/@generated/persisted-documents.json` contenga entradas para `VreinProductsQuery`, `VreinImagesQuery`, `VreinProductDataQuery`, `VreinCategoryIdQuery` y `VreinPopupQuery`.
 
 ## 8. Configuración en el Headless CMS
 
 1. **Global Section**: agregar la sección `VreinTracking` (sin props). Esto activa el tracking en toda la tienda — sin este paso no se capturan eventos ni funcionan las recomendaciones personalizadas.
-2. **Páginas**: agregar `VreinCarousel` y/o `VreinImageBanner` donde corresponda, completando el `sectionId` acordado con el equipo de Vrein (ej: `BDW-HOME-Carrusel-1`, `BDW-PDP-Carrusel-2`).
+2. **Global Section**: agregar también la sección `VreinPopup` (sin props) si la tienda va a usar el popup/slider de recomendaciones. Sin BrainDW configurado para la sección resuelta, el componente no renderiza nada — no es necesario un flag adicional para desactivarlo.
+3. **Páginas**: agregar `VreinCarousel` y/o `VreinImageBanner` donde corresponda, completando el `sectionId` acordado con el equipo de Vrein (ej: `BDW-HOME-Carrusel-1`, `BDW-PDP-Carrusel-2`).
 
 > Opcional recomendado: editar las entradas Vrein de `cms/faststore/sections.json` para reemplazar el campo `sectionId` de texto libre por un `enum` con los IDs habilitados para la tienda, así el editor de CMS ve un dropdown y no puede tipear IDs inválidos. Pedir la lista de secciones al equipo Vrein.
 
@@ -247,6 +259,7 @@ Si la tienda **no** tiene override de ProductCard, el carrusel usa `VreinProduct
 | Productos en lista vertical en lugar de carrusel | Falta el bloque de imports de @faststore/ui en `custom-theme.scss` (fuera del bloque `.theme`) |
 | Error `PersistedQueryNotFound` | Falta `yarn build` después de copiar los archivos, o falta `vreinQueries.ts` (codegen no registró las queries) |
 | No se capturan eventos | `VreinTracking` no está en el Global Section del CMS |
+| `VreinPopup` no renderiza nunca | Sección no configurada en BrainDW para la página resuelta (`HOME`/`PDP`/`PLP`/`SEARCH`), o `VreinPopup` no está agregado al Global Section del CMS — comportamiento esperado, no es un bug |
 | Cards "genéricas" en vez de las del cliente | El override no expone `__experimentalProductCard` en `overrides/ProductShelf` |
 | Error de compilación SCSS | Falta `sass` en devDependencies del proyecto |
 | Existe `src/pages/api/vrein.ts` o postinstall `patch-faststore-cli` | Restos de v0.1.x — eliminar; desde v0.2.0 todo va por `/api/graphql` |

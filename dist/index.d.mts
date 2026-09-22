@@ -218,6 +218,24 @@ interface VreinFullProduct {
     image: string;
     url: string;
 }
+type PopupSection = "HOME" | "PDP" | "PLP" | "SEARCH";
+type PopupType = "modal" | "slider";
+interface VreinPopupBlock$1 {
+    blockId: string;
+    title: string;
+    link: string;
+    gaEventAction: string;
+    gaEventCategory: string;
+    gaEventLabel: string;
+    products: VreinProduct[];
+}
+interface VreinPopupData {
+    section: string;
+    type: PopupType;
+    showOnce: boolean;
+    blocks: VreinPopupBlock$1[];
+    apiUrl: string;
+}
 
 type VreinProductItemProps = {
     item: VreinProduct;
@@ -227,6 +245,101 @@ type VreinProductItemProps = {
     onProductClick?: (productId: string, productName: string, position: number) => void;
 };
 declare const VreinProductItem: ({ item, bordered, showDiscountBadge, position, onProductClick, }: VreinProductItemProps) => react_jsx_runtime.JSX.Element;
+
+type VreinPopupProps = {
+    /** Injected FastStore useQuery executor (persisted-query path) */
+    useQueryFn: QueryExecutor;
+    /** Injected document from @generated/graphql (VreinPopupQueryDocument) */
+    vreinPopupDocument: unknown;
+    /** Cart id from useCart(), for metrics parity with VreinCarouselProps.cartId */
+    cartId?: string;
+    /**
+     * QA escape hatch; also settable via `?vrein_popup_section=PDP`. Mirrors
+     * Magento's `section_override`. Bypasses the page-type mapping table
+     * entirely and is used verbatim, uppercased. Never merchant-facing — the
+     * CMS schema for this section stays empty.
+     */
+    sectionOverride?: PopupSection | string;
+    /**
+     * Optional SPA route key (e.g. `usePathname() + search` in a Next app).
+     * When provided, overrides the package's internal `history`-patch-based
+     * navigation detection for re-resolving the section on client-side nav.
+     */
+    routeKey?: string;
+    /**
+     * Path prefixes where the popup must never render, matched against
+     * `window.location.pathname`. Mitigation for the PLP fail-open documented
+     * in design decision D8 (content routes falling through to `category`).
+     */
+    excludedPaths?: string[];
+};
+
+/**
+ * Root orchestrator. `'use client'`.
+ *
+ * Returns `null` on the server and on the first client render — before
+ * `hasMounted` flips `true`, `VreinPopupMounted` (and every hook it calls,
+ * including the reused `useVreinContext`, which still reads `window` inside
+ * a `useState` lazy initializer) is never even instantiated. This keeps the
+ * "no browser API access before mount" guarantee literal, not just about the
+ * final rendered output: nothing in this tree touches `window`, `document`,
+ * `localStorage`, or `sessionStorage` until a render pass that only happens
+ * after mount.
+ */
+declare const VreinPopup: (props: VreinPopupProps) => react_jsx_runtime.JSX.Element | null;
+
+type VreinPopupModalProps = {
+    data: VreinPopupData;
+    section: string;
+    onClose: () => void;
+};
+/**
+ * Overlay + centered content box + close control, capable of rendering one
+ * or two resolved blocks in the same modal instance. Owns the dismiss
+ * interaction (calls `onClose`, which the root wires to `usePopupDismissal`'s
+ * `dismiss()`).
+ *
+ * Accessibility: `role="dialog"`, `aria-modal="true"`, an accessible close
+ * label, Escape-to-close, and focus restoration on close (design safety
+ * note #8 — the Magento reference only has a bare `aria-label`).
+ */
+declare const VreinPopupModal: ({ data, section, onClose }: VreinPopupModalProps) => react_jsx_runtime.JSX.Element;
+
+type VreinPopupSliderProps = {
+    data: VreinPopupData;
+    section: string;
+    collapsed: boolean;
+    onToggle: () => void;
+};
+/**
+ * Fixed right rail with a collapsible vertical-label tab, capable of
+ * rendering one or two resolved blocks. Never consults the ShowOnce/
+ * dismissal gate — the slider has no ShowOnce logic by design (spec:
+ * "ShowOnce ignored for slider"). Collapse state is owned by the root via
+ * `useSliderCollapse` (sessionStorage only, never localStorage) and does not
+ * survive a full page reload.
+ *
+ * Two-blocks UX (label from the first non-empty block's title, each block
+ * kept visually separate via the shared `VreinPopupBlock`) mirrors the
+ * Magento port; whether blocks should instead be flattened into one list is
+ * an open product question, not resolved by this change.
+ */
+declare const VreinPopupSlider: ({ data, section, collapsed, onToggle }: VreinPopupSliderProps) => react_jsx_runtime.JSX.Element;
+
+type VreinPopupBlockProps = {
+    block: VreinPopupBlock$1;
+};
+/**
+ * One resolved popup block: optional title, a product carousel built from
+ * the same `VreinProductItem` the carousel uses, and an optional CTA link.
+ *
+ * The API-supplied `link` is routed through `safeHttpUrl()` before ever
+ * reaching an `href` (design safety note #1); no CTA renders when it comes
+ * back `null`. `title` and the GA passthrough fields render as plain text /
+ * attributes only — no `dangerouslySetInnerHTML` anywhere in this tree
+ * (design safety note #2).
+ */
+declare const VreinPopupBlock: ({ block }: VreinPopupBlockProps) => react_jsx_runtime.JSX.Element;
 
 interface VreinRecommendationsData {
     products: VreinProduct[];
@@ -315,6 +428,113 @@ declare function useInViewport(threshold?: number): {
 
 declare function useIsMobile(breakpoint?: number): boolean;
 
+interface VreinLocation {
+    pathname: string;
+    search: string;
+    key: string;
+}
+/**
+ * SPA-aware location hook. Unlike a `popstate`-only listener, this also detects
+ * client-side `history.pushState`/`replaceState` navigation (Next.js `router.push`,
+ * `<Link>` clicks), which never fire `popstate`.
+ *
+ * Initializes to an empty location on the server and on the first client render —
+ * the real value is resolved only inside `useEffect` (SSR/hydration safety, D7).
+ *
+ * Package-local, no `next/navigation` import: the package deliberately avoids a hard
+ * Next.js runtime dependency (D6). A Next-runtime consumer can bypass this hook
+ * entirely via the `routeKey` escape hatch on components that need one.
+ */
+declare function useCurrentLocation(): VreinLocation;
+
+/**
+ * Mount gate. Returns `false` on the server and on the first client render,
+ * `true` thereafter. Used to defer any browser-only-dependent rendering until
+ * after hydration, avoiding SSR/client markup mismatches (D7).
+ */
+declare function useHasMounted(): boolean;
+
+interface VreinPopupQueryParams {
+    section: string | null;
+    context?: string;
+    email?: string;
+    whitelabel?: string;
+}
+/**
+ * Query hook for the `vreinPopup` persisted GraphQL query, shaped like
+ * `useVreinRecommendations` — injected `useQueryFn` + injected document,
+ * `doNotRun` while `section` is unresolved, `isValidating` mapped to `loading`.
+ */
+declare function useVreinPopup(useQueryFn: QueryExecutor, queryDocument: unknown, { section, context, email, whitelabel }: VreinPopupQueryParams): {
+    data: VreinPopupData | null;
+    loading: boolean;
+    error: string | null;
+};
+
+/**
+ * Permanent, global (not per-section, not per-page) modal dismissal flag,
+ * persisted in `localStorage` under `vrein_popup_dismissed_v1`.
+ *
+ * Only meaningful when `showOnce` is true (server already enforces
+ * `showOnce = type === 'modal' && isFlagTrue(config.ShowOnce)` — this hook
+ * never re-derives that gate, it only persists the outcome).
+ *
+ * Tri-state: `dismissed` is `null` until resolved inside `useEffect` (never a
+ * `useState` lazy initializer) — SSR/hydration safety (D7). Every storage
+ * access is guarded by `typeof window !== 'undefined'` AND `try/catch`; on
+ * throw (e.g. Safari private mode) fails open to "not dismissed" without
+ * crashing the page.
+ */
+declare function usePopupDismissal(showOnce: boolean, section: string): {
+    dismissed: boolean | null;
+    dismiss: () => void;
+};
+
+/**
+ * Slider collapse UI state, persisted only in `sessionStorage` (per-tab, not
+ * across a fresh page load) — the slider MUST NOT consult the ShowOnce/
+ * dismissal gate at any point, and its collapse state MUST NOT survive a full
+ * page reload (spec: "Slider collapse state is non-persistent").
+ *
+ * Tri-state: `collapsed` is `null` until resolved inside `useEffect` (never a
+ * `useState` lazy initializer) — SSR/hydration safety (D7). Every storage
+ * access is guarded by `typeof window !== 'undefined'` AND `try/catch`; on
+ * throw, fails open to expanded (`false`) without crashing the page.
+ */
+declare function useSliderCollapse(): {
+    collapsed: boolean | null;
+    toggle: () => void;
+};
+
+/**
+ * Resolves the current FastStore page into the uppercase SECTION vocabulary the
+ * BrainDW backend expects.
+ *
+ * Fails closed to `null` on SSR and for any page type outside the mapping table.
+ * `cart` and `checkout` are not reachable as mountable React routes in this
+ * storefront (cart is a minicart slide-over; checkout is served outside the
+ * Next application by VTEX) and therefore ship unmapped by design, not by
+ * omission — see spec `popup-section-mapping`.
+ *
+ * `override` (the `sectionOverride` prop) and the `?vrein_popup_section=` query
+ * param both bypass the mapping table entirely and are used verbatim, uppercased.
+ * This is a QA/consumer-only escape hatch, never merchant-facing (D8) — the CMS
+ * schema for this section stays empty so merchants never see it.
+ */
+declare function resolvePopupSection(override?: string): string | null;
+
+/**
+ * Sanitizes an API-supplied URL before it is ever rendered into an `href`.
+ *
+ * Permits only `http:`, `https:`, and site-relative (`/...`) URL forms; returns
+ * `null` for anything else, notably `javascript:` schemes and protocol-relative
+ * (`//host/...`) URLs. React escapes text content but not URL schemes, so an
+ * unsanitized anchor is an XSS vector (design safety note #1).
+ *
+ * Pure function, no `window`/`document` access — safe to call during SSR.
+ */
+declare function safeHttpUrl(raw: string | null | undefined): string | null;
+
 declare function vreinToProductSummary(item: VreinProduct): {
     id: string;
     slug: string;
@@ -396,4 +616,4 @@ declare const VREIN_ENV: {
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
 
-export { type PageType$1 as PageType, type QueryExecutor, type UseAnalyticsEventFn, VREIN_CONFIG, VREIN_ENV, type VreinAnalyticsEvent, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, useInViewport, useIsMobile, useVreinContext, useVreinImages, useVreinMetrics, useVreinRecommendations, vreinToProductSummary };
+export { type PageType$1 as PageType, type PopupSection, type PopupType, type QueryExecutor, type UseAnalyticsEventFn, VREIN_CONFIG, VREIN_ENV, type VreinAnalyticsEvent, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, VreinPopup, VreinPopupBlock, type VreinPopupBlock$1 as VreinPopupBlockType, type VreinPopupData, VreinPopupModal, type VreinPopupProps, type VreinPopupQueryParams, VreinPopupSlider, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, resolvePopupSection, safeHttpUrl, useCurrentLocation, useHasMounted, useInViewport, useIsMobile, usePopupDismissal, useSliderCollapse, useVreinContext, useVreinImages, useVreinMetrics, useVreinPopup, useVreinRecommendations, vreinToProductSummary };

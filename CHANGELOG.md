@@ -6,6 +6,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.4.0] - 2026-09-22
+
+### Added
+
+- **`VreinPopup` component** (CMS Global Section): resolves a modal or lateral-slider popup of BrainDW/Vrein recommendations for the current page, with the same two-step BrainDW resolution pattern as `VreinTracking`/`VreinCarousel` (`vreinPopup` GraphQL query → VTEX Catalog product enrichment). Server-side: fail-closed gates (invalid/missing `Type`, `Expiration` window, empty blocks), TTL caches for config and content, `Promise.allSettled` per-block failure isolation, modal-only `ShowOnce` dismissal. Client-side: SSR-safe mounting (renders nothing until hydrated, no hydration mismatch), `localStorage`-backed permanent dismissal for the modal (`vrein_popup_dismissed_v1`), `sessionStorage`-backed non-persistent collapse for the slider (`vrein_popup_slider_collapsed`), fails open (renders) if storage access throws.
+- **`vreinPopup(section, context, email, whitelabel)` resolver**: new GraphQL field, added across all three SDL copies (`src/graphql/typeDefs/vrein.graphql`, `src/graphql/typeDefs/index.ts`, `templates/graphql/vrein.graphql.tpl`).
+- **`templates/components/VreinPopup.tsx.tpl`**: scaffolder wrapper for client projects.
+- **`templates/graphql/vreinQueries.ts.tpl`**: `VreinPopupQueryDocument` query document.
+- **`cms/vreinPopupSection.json`**: CMS section schema (no configurable props — placement in Global Section only).
+- Scaffolder (`bin/setup.js`) now generates the `VreinPopup` wrapper and merges the `VreinPopup` CMS section entry.
+- **Hooks exported for advanced consumers**: `useVreinPopup`, `usePopupDismissal`, `useSliderCollapse`, `useCurrentLocation`, `useHasMounted`, `resolvePopupSection`, `safeHttpUrl`.
+- **Types exported**: `VreinPopupProps`, `PopupSection`, `PopupType`, `VreinPopupData`, `VreinPopupBlockType`.
+
+### Changed
+
+- **`useVreinContext`** (internal, used by `VreinCarousel`): replaced `popstate`-only pathname tracking with an SPA-aware `history.pushState`/`replaceState` patch (`useCurrentLocation`). This is a **behavior fix**, not just an internal refactor: client-side navigation (e.g. Next `router.push()` / `<Link>`) previously did not re-derive the Vrein context (stale `pathname`/section after the first client-side route change); it now does. Existing carousels on HOME/PDP/PLP/SEARCH/SEARCHNORESULT are unaffected in their rendering logic — only the trigger mechanism for re-deriving context changed. No public API change.
+
+---
+
 ## [0.3.0] - 2026-06-05
 
 ### Added

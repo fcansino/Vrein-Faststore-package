@@ -107,3 +107,57 @@ export const VreinCategoryIdQueryDocument = gql`
     }
   }
 `
+
+// @ts-ignore
+export const VreinPopupQueryDocument = gql`
+  query VreinPopupQuery(
+    $section: String!
+    $context: String
+    $email: String
+    $whitelabel: String
+  ) {
+    vreinPopup(
+      section: $section
+      context: $context
+      email: $email
+      whitelabel: $whitelabel
+    ) {
+      section
+      type
+      showOnce
+      apiUrl
+      blocks {
+        blockId
+        title
+        link
+        gaEventAction
+        gaEventCategory
+        gaEventLabel
+        products {
+          id
+          sku
+          slug
+          name
+          brand {
+            name
+          }
+          image {
+            url
+            alternateName
+          }
+          offers {
+            offers {
+              price
+              listPrice
+              availability
+            }
+          }
+          isVariantOf {
+            productGroupID
+            name
+          }
+        }
+      }
+    }
+  }
+`

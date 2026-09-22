@@ -75,6 +75,11 @@ const files = [
     dest: path.join(cwd, 'src', 'components', 'sections', 'VreinTracking', 'VreinTracking.tsx'),
     label: 'VreinTracking wrapper component (CMS Global Section)',
   },
+  {
+    src: path.join(templatesDir, 'components', 'VreinPopup.tsx.tpl'),
+    dest: path.join(cwd, 'src', 'components', 'sections', 'VreinPopup', 'VreinPopup.tsx'),
+    label: 'VreinPopup wrapper component (CMS Global Section)',
+  },
 ]
 
 // ─── stale files to warn about ───────────────────────────────────────────────
@@ -144,6 +149,18 @@ const vreinTrackingSection = {
     title: 'Vrein Tracking Script',
     description:
       'Inyecta el script de tracking BrainDW/Vrein. Colocar en Global Section para que cargue en todas las páginas.',
+    type: 'object',
+    properties: {},
+  },
+}
+
+const vreinPopupSection = {
+  name: 'VreinPopup',
+  requiredScopes: [],
+  schema: {
+    title: 'Vrein Popup',
+    description:
+      'Popup/slider de recomendaciones BrainDW/Vrein (modal o rail lateral). Colocar en Global Section para que se resuelva en todas las páginas.',
     type: 'object',
     properties: {},
   },
@@ -289,6 +306,14 @@ async function processCmsSections() {
     log('SKIP', cmsSectionsPath, 'VreinTracking section already present')
   }
 
+  if (!names.has('VreinPopup')) {
+    if (!isDryRun) sections.push(vreinPopupSection)
+    log(isDryRun ? 'ADD-SECTION' : 'ADD-SECTION', cmsSectionsPath, 'VreinPopup entry')
+    changed = true
+  } else {
+    log('SKIP', cmsSectionsPath, 'VreinPopup section already present')
+  }
+
   if (changed && !isDryRun) {
     writeFile(cmsSectionsPath, JSON.stringify(sections, null, 2) + '\n')
   }
@@ -308,7 +333,7 @@ function printGuidance() {
   console.log('[info] Next steps:')
   console.log('[info]   1. Run `yarn build` (or `yarn codegen`) to generate persisted query hashes.')
   console.log('[info]   2. Verify .faststore/persisted-documents.json contains entries for:')
-  console.log('[info]      vreinProducts, vreinImages, vreinProductData, vreinCategoryId')
+  console.log('[info]      vreinProducts, vreinImages, vreinProductData, vreinCategoryId, vreinPopup')
   console.log('[info]   3. Run `yarn cms-sync` if sections.json was updated.')
   console.log('[info]   4. Ensure VREIN_HASH env var is set in your environment / Vercel secrets.')
   console.log('[info]')

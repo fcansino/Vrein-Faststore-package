@@ -1,0 +1,10 @@
+{
+  "name": "VreinPopup",
+  "requiredScopes": [],
+  "schema": {
+    "title": "Vrein Popup",
+    "description": "Popup/slider de recomendaciones BrainDW/Vrein (modal o rail lateral). Colocar en Global Section para que se resuelva en todas las páginas.",
+    "type": "object",
+    "properties": {}
+  }
+}

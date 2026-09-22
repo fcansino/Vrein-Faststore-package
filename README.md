@@ -85,6 +85,7 @@ src/
     VreinCarousel/          ← copiar completo
     VreinImageBanner/       ← copiar completo
     VreinTracking/          ← copiar completo (Global Section)
+    VreinPopup/             ← copiar completo (Global Section)
 ```
 
 Luego registrar en `src/components/index.tsx`:
@@ -93,11 +94,30 @@ Luego registrar en `src/components/index.tsx`:
 import { VreinCarousel } from './sections/VreinCarousel'
 import { VreinImageBanner } from './sections/VreinImageBanner'
 import { VreinTracking } from './sections/VreinTracking'
+import { VreinPopup } from './sections/VreinPopup'
 
-export default { VreinCarousel, VreinImageBanner, VreinTracking }
+export default { VreinCarousel, VreinImageBanner, VreinTracking, VreinPopup }
 ```
 
-### 4. VreinTracking (Global Section)
+### 4. VreinPopup (Global Section)
+
+El scaffolder genera el wrapper en `src/components/sections/VreinPopup/VreinPopup.tsx`. Colocar la sección `VreinPopup` en el **Global Section** del Headless CMS.
+
+Cómo funciona:
+
+- Resuelve la sección de la página actual (`HOME`/`PDP`/`PLP`/`SEARCH`) y consulta `vreinPopup(section, context, ...)`.
+- Si BrainDW devuelve `type: "modal"`, muestra un modal con uno o dos bloques de productos; si devuelve `type: "slider"`, muestra un rail lateral colapsable. Si no hay configuración válida o no hay productos, no renderiza nada.
+- El modal respeta `ShowOnce` (dismissal permanente vía `localStorage`, clave `vrein_popup_dismissed_v1`). El slider no tiene `ShowOnce`; su estado de colapso es no-persistente entre cargas completas de página (`sessionStorage`, clave `vrein_popup_slider_collapsed`).
+- No renderiza nada hasta después de la hidratación (sin mismatch de SSR) y falla abierto (renderiza) si el storage del navegador no está disponible.
+
+Variable de entorno opcional:
+
+```env
+NEXT_PUBLIC_VREIN_POPUP_URL=<host del endpoint de popup>
+# o VREIN_POPUP_URL — fallback: https://script-qa.vrein.ai
+```
+
+### 5. VreinTracking (Global Section)
 
 El tracking se activa con la sección CMS `VreinTracking`. Colocarla en el **Global Section** del Headless CMS para que cargue en todas las páginas. El scaffolder genera el wrapper en `src/components/sections/VreinTracking/VreinTracking.tsx`.
 
@@ -109,7 +129,7 @@ Cómo funciona:
 
 Requiere `@faststore/sdk` como peer dependency (ya presente en cualquier proyecto FastStore).
 
-### 5. Sincronizar schemas CMS
+### 6. Sincronizar schemas CMS
 
 Copiar los archivos de `cms/` al proyecto y ejecutar:
 
@@ -127,6 +147,7 @@ yarn cms-sync
 | `vreinImages(sectionId, ...)` | Banners SmartImage con countdown |
 | `vreinProductData(productId, skuId)` | Datos completos de un producto para persistencia |
 | `vreinCategoryId(pathname)` | Resuelve pathname de URL a categoryId numérico de VTEX |
+| `vreinPopup(section, context, email, whitelabel)` | Popup/slider de recomendaciones (modal o rail lateral) |
 
 ---
 
