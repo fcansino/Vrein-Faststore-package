@@ -459,9 +459,10 @@ function isWithinPopupAvailabilityWindow(
   return true;
 }
 
-// /tracking/track returns either a bare object or a one-item array. Normalize
-// both shapes to a single object, and to null when empty or malformed.
-function normalizePopupTrackResponse(raw: any): any | null {
+// Both /tracking/modalblock and /tracking/track return either a bare object
+// or a one-item array. Normalize both shapes to a single object, and to null
+// when empty or malformed.
+function normalizePopupApiResponse(raw: any): any | null {
   if (Array.isArray(raw)) {
     return raw.length > 0 ? raw[0] : null;
   }
@@ -826,7 +827,7 @@ export const vreinResolvers = {
             return null;
           }
 
-          config = await configResponse.json();
+          config = normalizePopupApiResponse(await configResponse.json());
           setCached(
             vreinPopupConfigCache,
             configCacheKey,
@@ -919,7 +920,7 @@ export const vreinResolvers = {
               }
 
               const rawBody = await trackResponse.json();
-              content = normalizePopupTrackResponse(rawBody);
+              content = normalizePopupApiResponse(rawBody);
               setCached(
                 vreinPopupContentCache,
                 contentCacheKey,
