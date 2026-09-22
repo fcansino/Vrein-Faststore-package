@@ -105,3 +105,24 @@ export interface VreinFullProduct {
 export interface VreinCategoryResult {
   categoryId: string;
 }
+
+export type PopupSection = "HOME" | "PDP" | "PLP" | "SEARCH";
+export type PopupType = "modal" | "slider";
+
+export interface VreinPopupBlock {
+  blockId: string;
+  title: string;
+  link: string;
+  gaEventAction: string;
+  gaEventCategory: string;
+  gaEventLabel: string;
+  products: VreinProduct[];
+}
+
+export interface VreinPopupData {
+  section: string;
+  type: PopupType;
+  showOnce: boolean;
+  blocks: VreinPopupBlock[];
+  apiUrl: string;
+}

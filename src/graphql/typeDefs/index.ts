@@ -105,10 +105,29 @@ type VreinCategoryResult {
   categoryId: String!
 }
 
+type VreinPopupBlock {
+  blockId: String!
+  title: String!
+  link: String!
+  gaEventAction: String!
+  gaEventCategory: String!
+  gaEventLabel: String!
+  products: [VreinProduct!]!
+}
+
+type VreinPopupData {
+  section: String!
+  type: String!
+  showOnce: Boolean!
+  blocks: [VreinPopupBlock!]!
+  apiUrl: String!
+}
+
 extend type Query {
   vreinProducts(sectionId: String!, context: String): VreinProductConnection!
   vreinProductData(productId: String, skuId: String): VreinFullProduct
   vreinImages(sectionId: String!, email: String, categoryId: String, whitelabel: String, sessionGuid: String): VreinImageBannerConnection!
   vreinCategoryId(pathname: String!): VreinCategoryResult!
+  vreinPopup(section: String!, context: String, email: String, whitelabel: String): VreinPopupData
 }
 `
