@@ -15,6 +15,10 @@ const VTEX_CACHE_TTL_MS = Number(process.env.VTEX_CACHE_TTL_MS) || 300_000;
 const MAX_CACHE_SIZE = 500;
 const BATCH_SIZE = 20;
 
+const VREIN_BRANCH_OFFICE = "1";
+const VREIN_SECRET =
+  process.env.VREIN_SECRET || "9DIIDJ7DHDA8SDUA9SUOKDS2309.DJDJC.99DD8U3";
+
 function getCached<T>(
   cache: Map<string, CacheEntry<T>>,
   key: string,
@@ -293,6 +297,113 @@ function transformToFullProduct(vtexProduct: any) {
   }
 }
 
+async function resolveVtexProductsByIds(
+  productIds: string[],
+  vtexAccount: string,
+): Promise<any[]> {
+  const cachedProducts: Map<string, any> = new Map();
+  const fetchNeeded: string[] = [];
+
+  for (const productId of productIds) {
+    const cached = getCached<any>(skuProductCache, productId);
+    if (cached) {
+      cachedProducts.set(productId, cached);
+    } else {
+      fetchNeeded.push(productId);
+    }
+  }
+
+  const fetchedProducts: Map<string, any> = new Map();
+
+  if (fetchNeeded.length > 0) {
+    const chunks = chunkArray(fetchNeeded, BATCH_SIZE);
+
+    const batchResults = await Promise.allSettled(
+      chunks.map(async (chunk) => {
+        const fqParams = chunk
+          .map((productId) => `fq=productId:${productId}`)
+          .join("&");
+        const url = `https://${vtexAccount}.vtexcommercestable.com.br/api/catalog_system/pub/products/search?${fqParams}`;
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `HTTP ${response.status} for batch of ${chunk.length} productIds`,
+          );
+        }
+
+        const products: any[] = await response.json();
+        return { chunk, products };
+      }),
+    );
+
+    for (const result of batchResults) {
+      if (result.status === "fulfilled") {
+        const { chunk, products } = result.value;
+
+        const productIdToProduct = new Map<string, any>();
+        for (const vtexProduct of products) {
+          if (!vtexProduct?.productId) continue;
+          if (chunk.includes(String(vtexProduct.productId))) {
+            productIdToProduct.set(
+              String(vtexProduct.productId),
+              vtexProduct,
+            );
+          }
+        }
+
+        for (const productId of chunk) {
+          const vtexProduct = productIdToProduct.get(productId);
+          if (!vtexProduct) continue;
+
+          const transformed = transformToFastStoreProduct(vtexProduct);
+          if (transformed) {
+            setCached(
+              skuProductCache,
+              productId,
+              transformed,
+              VTEX_CACHE_TTL_MS,
+            );
+            fetchedProducts.set(productId, transformed);
+          }
+        }
+      } else {
+        console.warn(
+          "[Vrein Resolver] Batch fetch failed:",
+          result.reason?.message || result.reason,
+        );
+      }
+    }
+  }
+
+  const products: any[] = [];
+  for (const productId of productIds) {
+    const product =
+      cachedProducts.get(productId) || fetchedProducts.get(productId);
+    if (product) {
+      const availability = product.offers?.offers?.[0]?.availability;
+      if (availability === "https://schema.org/InStock") {
+        products.push(product);
+      }
+    }
+  }
+
+  console.log(
+    "[Vrein Resolver] Successfully fetched",
+    products.length,
+    "in-stock products",
+  );
+
+  return products;
+}
+
 export const vreinResolvers = {
   Query: {
     vreinProducts: async (_: any, { sectionId, context }: any, ctx: any) => {
@@ -311,8 +422,6 @@ export const vreinResolvers = {
         );
 
         const VREIN_API_URL = "https://s2.braindw.com/tracking/track";
-        const VREIN_BRANCH_OFFICE = "1";
-        const VREIN_SECRET = "9DIIDJ7DHDA8SDUA9SUOKDS2309.DJDJC.99DD8U3";
         const VTEX_ACCOUNT = process.env.VTEX_ACCOUNT || "brain";
 
         let sessionGuid = "";
@@ -409,104 +518,9 @@ export const vreinResolvers = {
 
         const productIds: string[] = section.Products;
 
-        const cachedProducts: Map<string, any> = new Map();
-        const fetchNeeded: string[] = [];
-
-        for (const productId of productIds) {
-          const cached = getCached<any>(skuProductCache, productId);
-          if (cached) {
-            cachedProducts.set(productId, cached);
-          } else {
-            fetchNeeded.push(productId);
-          }
-        }
-
-        const fetchedProducts: Map<string, any> = new Map();
-
-        if (fetchNeeded.length > 0) {
-          const chunks = chunkArray(fetchNeeded, BATCH_SIZE);
-
-          const batchResults = await Promise.allSettled(
-            chunks.map(async (chunk) => {
-              const fqParams = chunk
-                .map((productId) => `fq=productId:${productId}`)
-                .join("&");
-              const url = `https://${VTEX_ACCOUNT}.vtexcommercestable.com.br/api/catalog_system/pub/products/search?${fqParams}`;
-
-              const response = await fetch(url, {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                },
-              });
-
-              if (!response.ok) {
-                throw new Error(
-                  `HTTP ${response.status} for batch of ${chunk.length} productIds`,
-                );
-              }
-
-              const products: any[] = await response.json();
-              return { chunk, products };
-            }),
-          );
-
-          for (const result of batchResults) {
-            if (result.status === "fulfilled") {
-              const { chunk, products } = result.value;
-
-              const productIdToProduct = new Map<string, any>();
-              for (const vtexProduct of products) {
-                if (!vtexProduct?.productId) continue;
-                if (chunk.includes(String(vtexProduct.productId))) {
-                  productIdToProduct.set(
-                    String(vtexProduct.productId),
-                    vtexProduct,
-                  );
-                }
-              }
-
-              for (const productId of chunk) {
-                const vtexProduct = productIdToProduct.get(productId);
-                if (!vtexProduct) continue;
-
-                const transformed = transformToFastStoreProduct(vtexProduct);
-                if (transformed) {
-                  setCached(
-                    skuProductCache,
-                    productId,
-                    transformed,
-                    VTEX_CACHE_TTL_MS,
-                  );
-                  fetchedProducts.set(productId, transformed);
-                }
-              }
-            } else {
-              console.warn(
-                "[Vrein Resolver] Batch fetch failed:",
-                result.reason?.message || result.reason,
-              );
-            }
-          }
-        }
-
-        const products: any[] = [];
-        for (const productId of productIds) {
-          const product =
-            cachedProducts.get(productId) || fetchedProducts.get(productId);
-          if (product) {
-            const availability = product.offers?.offers?.[0]?.availability;
-            if (availability === "https://schema.org/InStock") {
-              products.push(product);
-            }
-          }
-        }
-
-        console.log(
-          "[Vrein Resolver] Successfully fetched",
-          products.length,
-          "in-stock products",
+        const products = await resolveVtexProductsByIds(
+          productIds,
+          VTEX_ACCOUNT,
         );
 
         return {
@@ -540,9 +554,6 @@ export const vreinResolvers = {
             "[Vrein Resolver] NEXT_PUBLIC_VREIN_HASH env var is required but not set.",
           );
         }
-
-        const VREIN_BRANCH_OFFICE = "1";
-        const VREIN_SECRET = "9DIIDJ7DHDA8SDUA9SUOKDS2309.DJDJC.99DD8U3";
 
         const params = new URLSearchParams({
           HASH: VREIN_HASH,
