@@ -220,6 +220,12 @@ interface VreinFullProduct {
 }
 type PopupSection = "HOME" | "PDP" | "PLP" | "SEARCH";
 type PopupType = "modal" | "slider";
+type PopupBlockContentType = "products" | "images";
+interface VreinPopupImage {
+    link: string;
+    urlDesktop: string;
+    urlMobile: string;
+}
 interface VreinPopupBlock$1 {
     blockId: string;
     title: string;
@@ -227,7 +233,9 @@ interface VreinPopupBlock$1 {
     gaEventAction: string;
     gaEventCategory: string;
     gaEventLabel: string;
+    blockType: PopupBlockContentType;
     products: VreinProduct[];
+    images: VreinPopupImage[];
 }
 interface VreinPopupData {
     section: string;
@@ -330,8 +338,9 @@ type VreinPopupBlockProps = {
     block: VreinPopupBlock$1;
 };
 /**
- * One resolved popup block: optional title, a product carousel built from
- * the same `VreinProductItem` the carousel uses, and an optional CTA link.
+ * One resolved popup block: optional title, then either a product carousel
+ * (built from the same `VreinProductItem` the carousel uses) or a stack of
+ * image banners, depending on `block.blockType`, plus an optional CTA link.
  *
  * The API-supplied `link` is routed through `safeHttpUrl()` before ever
  * reaching an `href` (design safety note #1); no CTA renders when it comes
@@ -616,4 +625,4 @@ declare const VREIN_ENV: {
 declare function enableVreinDebug(): void;
 declare function disableVreinDebug(): void;
 
-export { type PageType$1 as PageType, type PopupSection, type PopupType, type QueryExecutor, type UseAnalyticsEventFn, VREIN_CONFIG, VREIN_ENV, type VreinAnalyticsEvent, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, VreinPopup, VreinPopupBlock, type VreinPopupBlock$1 as VreinPopupBlockType, type VreinPopupData, VreinPopupModal, type VreinPopupProps, type VreinPopupQueryParams, VreinPopupSlider, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, resolvePopupSection, safeHttpUrl, useCurrentLocation, useHasMounted, useInViewport, useIsMobile, usePopupDismissal, useSliderCollapse, useVreinContext, useVreinImages, useVreinMetrics, useVreinPopup, useVreinRecommendations, vreinToProductSummary };
+export { type PageType$1 as PageType, type PopupBlockContentType, type PopupSection, type PopupType, type QueryExecutor, type UseAnalyticsEventFn, VREIN_CONFIG, VREIN_ENV, type VreinAnalyticsEvent, type VreinBannerImage$1 as VreinBannerImageType, VreinCarousel, type VreinCarouselProps, type VreinDataLayerEvent, type VreinFullProduct, VreinImageBanner, type VreinImageBannerConnection, type VreinImageBannerData, type VreinImageBannerProps, VreinPopup, VreinPopupBlock, type VreinPopupBlock$1 as VreinPopupBlockType, type VreinPopupData, type VreinPopupImage, VreinPopupModal, type VreinPopupProps, type VreinPopupQueryParams, VreinPopupSlider, type VreinProduct, type VreinProductConnection, VreinProductItem, type VreinRecommendationsParams, type VreinSmartCountdown$1 as VreinSmartCountdownType, VreinTracking, type VreinTrackingProps, disableVreinDebug, enableVreinDebug, getClientConfig, getShelfTitleTag, getVreinConfig, resolvePopupSection, safeHttpUrl, useCurrentLocation, useHasMounted, useInViewport, useIsMobile, usePopupDismissal, useSliderCollapse, useVreinContext, useVreinImages, useVreinMetrics, useVreinPopup, useVreinRecommendations, vreinToProductSummary };
