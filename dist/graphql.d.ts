@@ -56,6 +56,13 @@ declare const vreinResolvers: {
         vreinCategoryId: (_: any, { pathname }: any) => Promise<{
             categoryId: string;
         }>;
+        vreinPopup: (_: any, { section, context, email }: any) => Promise<{
+            section: any;
+            type: any;
+            showOnce: boolean;
+            blocks: any[];
+            apiUrl: string;
+        } | null>;
     };
 };
 

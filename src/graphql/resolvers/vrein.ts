@@ -9,15 +9,29 @@ interface CacheEntry<T> {
 
 const vreinResponseCache = new Map<string, CacheEntry<any[]>>();
 const skuProductCache = new Map<string, CacheEntry<any>>();
+const vreinPopupConfigCache = new Map<string, CacheEntry<any>>();
+const vreinPopupContentCache = new Map<string, CacheEntry<any>>();
 
 const VREIN_CACHE_TTL_MS = Number(process.env.VREIN_CACHE_TTL_MS) || 60_000;
 const VTEX_CACHE_TTL_MS = Number(process.env.VTEX_CACHE_TTL_MS) || 300_000;
+const VREIN_POPUP_CONFIG_TTL_MS =
+  Number(process.env.VREIN_POPUP_CONFIG_TTL_MS) || 120_000;
+const VREIN_POPUP_CONTENT_TTL_MS =
+  Number(process.env.VREIN_POPUP_CONTENT_TTL_MS) || 300_000;
 const MAX_CACHE_SIZE = 500;
 const BATCH_SIZE = 20;
 
 const VREIN_BRANCH_OFFICE = "1";
 const VREIN_SECRET =
   process.env.VREIN_SECRET || "9DIIDJ7DHDA8SDUA9SUOKDS2309.DJDJC.99DD8U3";
+
+// Popup endpoint host — still in QA on the Vrein backend side as of this change,
+// not a placeholder. Overridable via env so the eventual QA -> production cutover
+// is a config change, not a package release.
+const VREIN_POPUP_BASE_URL =
+  process.env.NEXT_PUBLIC_VREIN_POPUP_URL ||
+  process.env.VREIN_POPUP_URL ||
+  "https://script-qa.vrein.ai";
 
 function getCached<T>(
   cache: Map<string, CacheEntry<T>>,
@@ -404,6 +418,59 @@ async function resolveVtexProductsByIds(
   return products;
 }
 
+// String-typed boolean flags from BrainDW arrive as "True"/"False" strings, not
+// booleans. Boolean(v) and empty(v)-style checks both silently invert this gate —
+// only the literal string "true" (case-insensitive, trimmed) counts as set.
+function isFlagTrue(value: unknown): boolean {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase() === "true";
+}
+
+// Expiration gates AvailableFrom/AvailableTo. When Expiration is not the literal
+// string "true", the window is ignored entirely, even if populated — deliberate
+// and counterintuitive, ported as-is from the reference implementation.
+function isWithinPopupAvailabilityWindow(
+  config: {
+    Expiration?: unknown;
+    AvailableFrom?: unknown;
+    AvailableTo?: unknown;
+  },
+  now: number,
+): boolean {
+  if (!isFlagTrue(config.Expiration)) {
+    return true;
+  }
+
+  const availableFrom = config.AvailableFrom
+    ? Date.parse(String(config.AvailableFrom))
+    : NaN;
+  if (!Number.isNaN(availableFrom) && now < availableFrom) {
+    return false;
+  }
+
+  const availableTo = config.AvailableTo
+    ? Date.parse(String(config.AvailableTo))
+    : NaN;
+  if (!Number.isNaN(availableTo) && now > availableTo) {
+    return false;
+  }
+
+  return true;
+}
+
+// /tracking/track returns either a bare object or a one-item array. Normalize
+// both shapes to a single object, and to null when empty or malformed.
+function normalizePopupTrackResponse(raw: any): any | null {
+  if (Array.isArray(raw)) {
+    return raw.length > 0 ? raw[0] : null;
+  }
+  if (raw && typeof raw === "object") {
+    return raw;
+  }
+  return null;
+}
+
 export const vreinResolvers = {
   Query: {
     vreinProducts: async (_: any, { sectionId, context }: any, ctx: any) => {
@@ -692,6 +759,234 @@ export const vreinResolvers = {
       } catch (error) {
         console.error("[Vrein Resolver] Error resolving categoryId:", error);
         return { categoryId: "" };
+      }
+    },
+
+    vreinPopup: async (_: any, { section, context, email }: any) => {
+      // `whitelabel` is intentionally not read from args here: it is a
+      // non-configurable constant (always sent empty) for both BrainDW popup
+      // calls, per design decision D2/D12.
+      try {
+        const VREIN_HASH =
+          process.env.NEXT_PUBLIC_VREIN_HASH || process.env.VREIN_HASH;
+        if (!VREIN_HASH) {
+          throw new Error(
+            "[Vrein Resolver] NEXT_PUBLIC_VREIN_HASH env var is required but not set.",
+          );
+        }
+
+        const VTEX_ACCOUNT = process.env.VTEX_ACCOUNT || "brain";
+        const emailParam = email || "";
+
+        let sessionGuid = "";
+        try {
+          const ctxParsed = JSON.parse(context || "{}");
+          sessionGuid = ctxParsed.sessionGuid || "";
+        } catch {
+          // ignore
+        }
+        const cookies = sessionGuid ? `guid=${sessionGuid};` : "";
+
+        const popupHeaders: Record<string, string> = {
+          Accept: "application/json",
+          ...(VREIN_SECRET
+            ? {
+                bdw_secretcode: VREIN_SECRET,
+                "bdw-secretcode": VREIN_SECRET,
+              }
+            : {}),
+          "X-VTEX-Use-Https": "true",
+          ...(cookies ? { Cookie: cookies } : {}),
+        };
+
+        // Step 1: GET /tracking/modalblock — config for this section.
+        const configParams = new URLSearchParams({
+          HASH: VREIN_HASH,
+          email: emailParam,
+          branchOffice: VREIN_BRANCH_OFFICE,
+          whitelabel: "",
+          sectionid: section.toLowerCase(),
+        });
+        const modalblockUrl = `${VREIN_POPUP_BASE_URL}/tracking/modalblock?${configParams}`;
+
+        const configCacheKey = `${VREIN_HASH}:${VREIN_BRANCH_OFFICE}:${section}:${emailParam}`;
+        let config = getCached<any>(vreinPopupConfigCache, configCacheKey);
+
+        if (!config) {
+          const configResponse = await fetch(modalblockUrl, {
+            method: "GET",
+            headers: popupHeaders,
+          });
+
+          if (!configResponse.ok) {
+            console.warn(
+              "[Vrein Resolver] Popup modalblock API error:",
+              configResponse.status,
+            );
+            return null;
+          }
+
+          config = await configResponse.json();
+          setCached(
+            vreinPopupConfigCache,
+            configCacheKey,
+            config,
+            VREIN_POPUP_CONFIG_TTL_MS,
+          );
+        }
+
+        if (!config) {
+          console.warn(
+            "[Vrein Resolver] Popup no modalblock config for section:",
+            section,
+          );
+          return null;
+        }
+
+        // Gate (b): Type validated against the closed set, case-sensitive —
+        // absent/empty/unrecognized values fail closed, no track call made.
+        const type = typeof config.Type === "string" ? config.Type : "";
+        if (type !== "modal" && type !== "slider") {
+          console.warn(
+            "[Vrein Resolver] Popup invalid or unrecognized type:",
+            config.Type,
+          );
+          return null;
+        }
+
+        // Gates (c)+(d): availability window, evaluated live against the
+        // server clock — never from a cached decision.
+        if (!isWithinPopupAvailabilityWindow(config, Date.now())) {
+          return null;
+        }
+
+        // ShowOnce is modal-only, enforced server-side, always false for slider.
+        const showOnce = type === "modal" && isFlagTrue(config.ShowOnce);
+
+        const blockIds: string[] = [config.Block1, config.Block2].filter(
+          (id: unknown): id is string =>
+            typeof id === "string" && id.trim() !== "",
+        );
+
+        if (blockIds.length === 0) {
+          console.warn(
+            "[Vrein Resolver] Popup no blocks configured for section:",
+            section,
+          );
+          return null;
+        }
+
+        let u = await buildVreinU(context || "home//", VTEX_ACCOUNT);
+        if (!u) {
+          // Defensive only: buildVreinU cannot structurally return empty, but
+          // the popup content endpoint 500s on an empty u, so guard anyway.
+          u = "home//";
+        }
+
+        // Step 2: one GET /tracking/track per block, parallel and
+        // failure-isolated — a single failing block must never abort the rest.
+        const blockResults = await Promise.allSettled(
+          blockIds.map(async (blockId) => {
+            const trackParams = new URLSearchParams({
+              HASH: VREIN_HASH,
+              email: emailParam,
+              branchOffice: VREIN_BRANCH_OFFICE,
+              whitelabel: "",
+              sectionId: blockId,
+              u,
+            });
+            const trackUrl = `${VREIN_POPUP_BASE_URL}/tracking/track?${trackParams}`;
+
+            const contentCacheKey = `${VREIN_HASH}:${blockId}:${section}:${emailParam}:${u}`;
+            let content = getCached<any>(
+              vreinPopupContentCache,
+              contentCacheKey,
+            );
+
+            if (!content) {
+              const trackResponse = await fetch(trackUrl, {
+                method: "GET",
+                headers: popupHeaders,
+              });
+
+              if (!trackResponse.ok) {
+                console.warn(
+                  "[Vrein Resolver] Popup track API error for block:",
+                  blockId,
+                  trackResponse.status,
+                );
+                return null;
+              }
+
+              const rawBody = await trackResponse.json();
+              content = normalizePopupTrackResponse(rawBody);
+              setCached(
+                vreinPopupContentCache,
+                contentCacheKey,
+                content,
+                VREIN_POPUP_CONTENT_TTL_MS,
+              );
+            }
+
+            if (!content) {
+              return null;
+            }
+
+            const productIds: string[] = Array.isArray(content.Products)
+              ? content.Products
+              : [];
+
+            const products = await resolveVtexProductsByIds(
+              productIds,
+              VTEX_ACCOUNT,
+            );
+
+            if (products.length === 0) {
+              return null;
+            }
+
+            return {
+              blockId,
+              title: content.Title || "",
+              link: content.Link || "",
+              gaEventAction: content.GaEventAction || "",
+              gaEventCategory: content.GaEventCategory || "",
+              gaEventLabel: content.GaEventLabel || "",
+              products,
+            };
+          }),
+        );
+
+        const blocks: any[] = [];
+        for (const result of blockResults) {
+          if (result.status === "fulfilled" && result.value !== null) {
+            blocks.push(result.value);
+          } else if (result.status === "rejected") {
+            console.warn(
+              "[Vrein Resolver] Popup block resolution failed:",
+              result.reason?.message || result.reason,
+            );
+          }
+        }
+
+        if (blocks.length === 0) {
+          console.warn(
+            "[Vrein Resolver] Popup all blocks empty or failed for section:",
+            section,
+          );
+          return null;
+        }
+
+        return {
+          section,
+          type,
+          showOnce,
+          blocks,
+          apiUrl: modalblockUrl,
+        };
+      } catch (error) {
+        console.error("[Vrein Resolver] Error resolving popup:", error);
+        return null;
       }
     },
   },
