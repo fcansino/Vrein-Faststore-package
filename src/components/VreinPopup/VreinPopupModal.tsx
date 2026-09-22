@@ -57,6 +57,12 @@ export const VreinPopupModal = ({ data, section, onClose }: VreinPopupModalProps
         aria-modal="true"
         aria-label="Promoción"
         tabIndex={-1}
+        // `.theme .section [data-fs-*]` in custom-theme.scss is how this
+        // storefront scopes @faststore/ui's design tokens (see VreinCarousel's
+        // own `section` wrapper). A Global Section never gets that ancestor
+        // automatically, so without it every reused @faststore/ui primitive
+        // (Carousel included) renders with no layout/tokens at all.
+        className="section"
         style={modalBoxStyle}
         onClick={(event) => event.stopPropagation()}
       >

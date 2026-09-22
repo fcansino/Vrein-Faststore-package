@@ -34,6 +34,8 @@ export const VreinPopupSlider = ({ data, section, collapsed, onToggle }: VreinPo
       data-type="slider"
       data-section={section}
       data-collapsed={collapsed}
+      // See VreinPopupModal.tsx for why this class is required here.
+      className="section"
       style={sliderRailStyle(collapsed)}
     >
       <button
