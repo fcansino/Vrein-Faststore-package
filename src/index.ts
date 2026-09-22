@@ -18,7 +18,7 @@ export type {
 export type { VreinCarouselProps, PageType } from './components/VreinCarousel/VreinCarousel.types'
 export type { VreinImageBannerProps, VreinImageBannerData, VreinBannerImage as VreinBannerImageType, VreinSmartCountdown as VreinSmartCountdownType } from './components/VreinImageBanner/VreinImageBanner.types'
 export type { VreinPopupProps } from './components/VreinPopup/VreinPopup.types'
-export type { VreinProduct, VreinProductConnection, VreinImageBannerConnection, VreinFullProduct, PopupSection, PopupType, VreinPopupBlock as VreinPopupBlockType, VreinPopupData } from './types/vrein'
+export type { VreinProduct, VreinProductConnection, VreinImageBannerConnection, VreinFullProduct, PopupSection, PopupType, PopupBlockContentType, VreinPopupBlock as VreinPopupBlockType, VreinPopupImage, VreinPopupData } from './types/vrein'
 
 // SDK types (for type-safe adapter wiring)
 export type { QueryExecutor } from './sdk/types'

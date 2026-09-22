@@ -11,6 +11,7 @@ const vreinResponseCache = new Map<string, CacheEntry<any[]>>();
 const skuProductCache = new Map<string, CacheEntry<any>>();
 const vreinPopupConfigCache = new Map<string, CacheEntry<any>>();
 const vreinPopupContentCache = new Map<string, CacheEntry<any>>();
+const vreinPopupImageContentCache = new Map<string, CacheEntry<any>>();
 
 const VREIN_CACHE_TTL_MS = Number(process.env.VREIN_CACHE_TTL_MS) || 60_000;
 const VTEX_CACHE_TTL_MS = Number(process.env.VTEX_CACHE_TTL_MS) || 300_000;
@@ -472,6 +473,20 @@ function normalizePopupApiResponse(raw: any): any | null {
   return null;
 }
 
+// A popup block is content from either /tracking/track (products) or
+// /tracking/smartimage (banner images) — two different endpoints, so the
+// choice has to be made *before* fetching anything. The only signal
+// available at that point is the BrainDW blockId naming convention, e.g.
+// "BDW-HOME-IMAGES-PU1" vs "BDW-Home-Carrusel-PU1" (confirmed against the
+// live modalblock config for HOME). The response body's own `Type` field
+// ("images" vs "products") is authoritative but only exists *after* the
+// fetch, so it is used as a post-fetch safety net below (fails closed to
+// null on a mismatch) rather than as the dispatch signal itself.
+const VREIN_IMAGE_BLOCK_ID_PATTERN = /IMAGES/i;
+function isImageBlockId(blockId: string): boolean {
+  return VREIN_IMAGE_BLOCK_ID_PATTERN.test(blockId);
+}
+
 export const vreinResolvers = {
   Query: {
     vreinProducts: async (_: any, { sectionId, context }: any, ctx: any) => {
@@ -884,10 +899,99 @@ export const vreinResolvers = {
           u = "home//";
         }
 
-        // Step 2: one GET /tracking/track per block, parallel and
-        // failure-isolated — a single failing block must never abort the rest.
+        // Step 2: one GET per block — /tracking/smartimage for image blocks,
+        // /tracking/track for product blocks — parallel and failure-isolated,
+        // a single failing block must never abort the rest. Block order
+        // (Block1, Block2 as configured) is preserved via blockIds.map.
         const blockResults = await Promise.allSettled(
           blockIds.map(async (blockId) => {
+            if (isImageBlockId(blockId)) {
+              const smartImageParams = new URLSearchParams({
+                HASH: VREIN_HASH,
+                email: emailParam,
+                branchOffice: VREIN_BRANCH_OFFICE,
+                whitelabel: "",
+                sectionId: blockId,
+                u,
+              });
+              const smartImageUrl = `${VREIN_POPUP_BASE_URL}/tracking/smartimage?${smartImageParams}`;
+
+              const imageContentCacheKey = `${VREIN_HASH}:${blockId}:${section}:${emailParam}:${u}`;
+              let content = getCached<any>(
+                vreinPopupImageContentCache,
+                imageContentCacheKey,
+              );
+
+              if (!content) {
+                const smartImageResponse = await fetch(smartImageUrl, {
+                  method: "GET",
+                  headers: popupHeaders,
+                });
+
+                if (!smartImageResponse.ok) {
+                  console.warn(
+                    "[Vrein Resolver] Popup smartimage API error for block:",
+                    blockId,
+                    smartImageResponse.status,
+                  );
+                  return null;
+                }
+
+                const rawBody = await smartImageResponse.json();
+                content = normalizePopupApiResponse(rawBody);
+                setCached(
+                  vreinPopupImageContentCache,
+                  imageContentCacheKey,
+                  content,
+                  VREIN_POPUP_CONTENT_TTL_MS,
+                );
+              }
+
+              if (!content) {
+                return null;
+              }
+
+              // Safety-net cross-check against the blockId-based dispatch
+              // above: only trust a response that self-identifies as
+              // "images" once we actually have it.
+              if (content.Type && content.Type !== "images") {
+                console.warn(
+                  "[Vrein Resolver] Popup smartimage block returned unexpected Type:",
+                  blockId,
+                  content.Type,
+                );
+                return null;
+              }
+
+              const rawImages: any[] = Array.isArray(content.Images)
+                ? content.Images
+                : [];
+
+              const images = rawImages
+                .map((img: any) => ({
+                  link: String(img?.Link || ""),
+                  urlDesktop: String(img?.UrlDesktop || ""),
+                  urlMobile: String(img?.UrlMobile || ""),
+                }))
+                .filter((img) => img.urlDesktop || img.urlMobile);
+
+              if (images.length === 0) {
+                return null;
+              }
+
+              return {
+                blockId,
+                title: content.Title || "",
+                link: content.Link || "",
+                gaEventAction: content.GaEventAction || "",
+                gaEventCategory: content.GaEventCategory || "",
+                gaEventLabel: content.GaEventLabel || "",
+                blockType: "images",
+                products: [],
+                images,
+              };
+            }
+
             const trackParams = new URLSearchParams({
               HASH: VREIN_HASH,
               email: emailParam,
@@ -953,7 +1057,9 @@ export const vreinResolvers = {
               gaEventAction: content.GaEventAction || "",
               gaEventCategory: content.GaEventCategory || "",
               gaEventLabel: content.GaEventLabel || "",
+              blockType: "products",
               products,
+              images: [],
             };
           }),
         );

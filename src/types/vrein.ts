@@ -108,6 +108,16 @@ export interface VreinCategoryResult {
 
 export type PopupSection = "HOME" | "PDP" | "PLP" | "SEARCH";
 export type PopupType = "modal" | "slider";
+// Named PopupBlockContentType (not "VreinPopupBlockType") to avoid clashing
+// with the `VreinPopupBlock as VreinPopupBlockType` alias `index.ts` already
+// exports for the block *record* interface below.
+export type PopupBlockContentType = "products" | "images";
+
+export interface VreinPopupImage {
+  link: string;
+  urlDesktop: string;
+  urlMobile: string;
+}
 
 export interface VreinPopupBlock {
   blockId: string;
@@ -116,7 +126,9 @@ export interface VreinPopupBlock {
   gaEventAction: string;
   gaEventCategory: string;
   gaEventLabel: string;
+  blockType: PopupBlockContentType;
   products: VreinProduct[];
+  images: VreinPopupImage[];
 }
 
 export interface VreinPopupData {

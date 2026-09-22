@@ -104,3 +104,19 @@ export const blockCtaStyle: CSSProperties = {
 export const blockContainerStyle: CSSProperties = {
   marginBottom: 'var(--vrein-popup-block-gap, 20px)',
 }
+
+export const bannerLinkStyle: CSSProperties = {
+  display: 'block',
+  width: '100%',
+}
+
+export const bannerImageStyle: CSSProperties = {
+  width: '100%',
+  height: 'auto',
+  display: 'block',
+  objectFit: 'cover',
+}
+
+export const bannerWrapperStyle: CSSProperties = {
+  marginBottom: 'var(--vrein-popup-banner-gap, 12px)',
+}

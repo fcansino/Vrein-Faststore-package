@@ -105,6 +105,12 @@ type VreinCategoryResult {
   categoryId: String!
 }
 
+type VreinPopupImage {
+  link: String!
+  urlDesktop: String!
+  urlMobile: String!
+}
+
 type VreinPopupBlock {
   blockId: String!
   title: String!
@@ -112,7 +118,9 @@ type VreinPopupBlock {
   gaEventAction: String!
   gaEventCategory: String!
   gaEventLabel: String!
+  blockType: String!
   products: [VreinProduct!]!
+  images: [VreinPopupImage!]!
 }
 
 type VreinPopupData {

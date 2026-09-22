@@ -133,6 +133,12 @@ export const VreinPopupQueryDocument = gql`
         gaEventAction
         gaEventCategory
         gaEventLabel
+        blockType
+        images {
+          link
+          urlDesktop
+          urlMobile
+        }
         products {
           id
           sku

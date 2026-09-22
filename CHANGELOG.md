@@ -6,7 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [0.4.0] - 2026-09-22
+## [Unreleased]
+
+### Added
+
+- **`VreinPopup` image blocks**: `vreinPopup` resolver now resolves a configured block as an image banner (`GET /tracking/smartimage`) instead of a product carousel (`GET /tracking/track`) when its BrainDW blockId is tagged `IMAGES` (e.g. `BDW-HOME-IMAGES-PU1`), with the response's own `Type` field cross-checked as a post-fetch safety net. Previously every block was fetched from `/tracking/track` and dropped whenever it resolved to zero products, so image blocks (e.g. `Block2` on HOME) were always silently discarded. `VreinPopupBlock` gains `blockType: "products" | "images"` and `images: [VreinPopupImage!]!` (`link`, `urlDesktop`, `urlMobile`); product blocks report `images: []` and image blocks report `products: []`. Block order (`Block1`, `Block2`) and per-block failure isolation are unchanged; the smartimage fetch has its own TTL cache keyed separately from the product-track cache.
+- **`VreinPopupBlock.tsx`**: renders image blocks as one or more `<picture>` banners (mobile `<source>` via a `(max-width: 768px)` media query, desktop `<img>` fallback, `loading="lazy"`), wrapped in an `<a>` only when `safeHttpUrl(image.link)` is non-null. Product blocks keep rendering the existing carousel.
+- **Types exported**: `PopupBlockContentType`, `VreinPopupImage`.
+
+
 
 ### Added
 
