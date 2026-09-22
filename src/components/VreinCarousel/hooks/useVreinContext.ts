@@ -1,22 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-
-/**
- * Hook interno: retorna el pathname actual y se re-renderiza en cambios de ruta SPA.
- * Reemplaza usePathname() de next/navigation para evitar depender de Next.js en el package.
- */
-function useCurrentPathname(): string {
-  const [pathname, setPathname] = useState(
-    () => typeof window !== 'undefined' ? window.location.pathname : '/'
-  )
-  useEffect(() => {
-    const handleChange = () => setPathname(window.location.pathname)
-    window.addEventListener('popstate', handleChange)
-    return () => window.removeEventListener('popstate', handleChange)
-  }, [])
-  return pathname
-}
+import { useCurrentLocation } from './useCurrentLocation'
 
 type PageType = 'home' | 'product' | 'category' | 'search' | 'searchnoresult'
 
@@ -39,8 +24,11 @@ interface VreinContextData {
  * Detecta el tipo de página desde la URL.
  * Para search vs searchnoresult (ambas en /s), delega en detectSearchState().
  * Si se provee pageTypeOverride, se usa ese valor directamente.
+ *
+ * Exported for reuse by VreinPopup's popupSection.ts (D8) — the page-type detector
+ * is the single source of truth for both the carousel and the popup.
  */
-function detectPageType(): PageType {
+export function detectPageType(): PageType {
   if (typeof window === 'undefined') return 'home'
 
   const pathname = window.location.pathname
@@ -279,7 +267,7 @@ function isGuidReady(): boolean {
  *   Pasar 'search' para secciones SR, 'searchnoresult' para SNR.
  */
 export function useVreinContext(sectionId: string, pageTypeOverride?: PageType): string {
-  const pathname = useCurrentPathname()
+  const location = useCurrentLocation()
   const [context, setContext] = useState<string>(() => {
     if (typeof window === 'undefined') return 'home//'
     const pageType = pageTypeOverride ?? detectPageType()
@@ -303,7 +291,7 @@ export function useVreinContext(sectionId: string, pageTypeOverride?: PageType):
       return
     }
 
-    dbg('[VreinContext] Waiting for page data to be ready...', { pageType, pathname })
+    dbg('[VreinContext] Waiting for page data to be ready...', { pageType, pathname: location.pathname })
 
     let resolved = false
 
@@ -329,7 +317,7 @@ export function useVreinContext(sectionId: string, pageTypeOverride?: PageType):
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [sectionId, pathname, pageTypeOverride])
+  }, [sectionId, location.key, pageTypeOverride])
 
   return context
 }
